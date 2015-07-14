@@ -1,6 +1,6 @@
 {
   "name": "microgear",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "scripts": {},
   "dependencies": {
     "mqtt": "*",
