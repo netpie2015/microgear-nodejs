@@ -1,15 +1,5 @@
-# microgear-nodejs
+#!/usr/bin/env node
 
-microgear คือ Node.js client library ของ netpie platform ซึ่งจะช่วยให้การพัฒนา IOT hardware และ application เป็นเรื่องง่าย
-
-การติดตั้ง
-
-```
-npm install microgear
-```
-
-ตัวอย่างการเขียนโปรแกรม
-```js
 var MicroGear = require('microgear');
 
 const APPKEY    = <APPKEY>;
@@ -38,6 +28,4 @@ microgear.on('closed', function() {
 });
 
 microgear.connect(APPID);
-```
-
 
