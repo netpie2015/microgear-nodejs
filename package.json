@@ -1,14 +1,13 @@
 {
   "name": "microgear",
   "version": "0.5.0",
-  "private": true,
   "scripts": {},
   "dependencies": {
     "mqtt": "*",
     "oauth": "*",
     "hat": "*"
   },
-  "description": "microgear คือ Node.js client library ของ netpie platform ซึ่งจะช่วยให้การพัฒนา IOT hardware และ application เป็นเรื่องง่าย",
+  "description": "microgear client library",
   "main": "index.js",
   "directories": {
     "example": "examples"
@@ -23,7 +22,7 @@
     "iot",
     "platform"
   ],
-  "author": "netpie",
+  "author": "netpieio",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/netpieio/microgear-nodejs/issues"

@@ -6,16 +6,10 @@
 module.exports.create = create;
 
 /**
- * API Endpoint to get an OAuth Request Token 
+ * Authentication Endpoint
  * @type {String}
  */
-const GEARAUTHREQUESTTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/request_token';
-
-/**
- * API Endpoint to get an OAuth Access Token 
- * @type {String}
- */
-const GEARAUTHACCESSTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/access_token';
+const GEARAUTHENDPOINT = 'http://gearauth.netpie.io:8080';
 
 /**
  * Microgear API version
@@ -199,8 +193,8 @@ microgear.prototype.gettoken = function(callback) {
 			}
 
 			var oauth = new OAuth.OAuth(
-				GEARAUTHREQUESTTOKENENDPOINT,
-				GEARAUTHACCESSTOKENENDPOINT,
+				GEARAUTHENDPOINT+'/oauth/request_token',
+				GEARAUTHENDPOINT+'/oauth/access_token',
 				this.gearkey,
 				this.gearsecret,
 				'1.0',
@@ -235,8 +229,8 @@ microgear.prototype.gettoken = function(callback) {
 			}
 			var verifier = require('hat')(32);
 			var oauth = new OAuth.OAuth(
-				GEARAUTHREQUESTTOKENENDPOINT,
-				GEARAUTHACCESSTOKENENDPOINT,
+				GEARAUTHENDPOINT+'/oauth/request_token',
+				GEARAUTHENDPOINT+'/oauth/access_token',
 				this.gearkey,
 				this.gearsecret,
 				'1.0',
@@ -269,10 +263,7 @@ function initiateconnection(done) {
 	self.gettoken(function(state) {
 		switch (state) {
 			case 0 : 	/* No token issue */
-						if (self.appkey || self.secret)
-							console.log('Error: request token is not issued, please check your appkey and appsecret');
-						else
-							console.log('Error: request token is not issued, please check your consumerkey and consumersecret');
+						console.log('Error: request token is not issued, please check your gearkey and gearsecret');
 						process.exit(1);
 						return;
 			case 1 :	/* Request token issued or prepare to request request token again */
