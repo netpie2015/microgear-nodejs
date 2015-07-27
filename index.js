@@ -403,6 +403,9 @@ microgear.prototype.brokerconnect = function(callback) {
 		if (microgear.prototype.listeners('present')) {
 			self.client.subscribe('/'+self.appid+'/@present');
 		}
+		if (microgear.prototype.listeners('absent')) {
+			self.client.subscribe('/'+self.appid+'/@absent');
+		}
 
 		microgear.prototype.emit('connected');
 	});
@@ -512,6 +515,13 @@ microgear.prototype.on('newListener', function(event,listener) {
 				if (this.client) {
 					if (this.client.connected) {
 						this.subscribe('/@present');
+					}
+				}
+				break;
+		case 'absent' :
+				if (this.client) {
+					if (this.client.connected) {
+						this.subscribe('/@absent');
 					}
 				}
 				break;
