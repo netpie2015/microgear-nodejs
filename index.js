@@ -6,10 +6,16 @@
 module.exports.create = create;
 
 /**
- * Authentication Endpoint
+ * API Endpoint to get an OAuth Request Token 
  * @type {String}
  */
-const GEARAUTHENDPOINT = 'http://gearauth.netpie.io:8080';
+const GEARAUTHREQUESTTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/request_token';
+
+/**
+ * API Endpoint to get an OAuth Access Token 
+ * @type {String}
+ */
+const GEARAUTHACCESSTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/access_token';
 
 /**
  * Microgear API version
@@ -193,8 +199,8 @@ microgear.prototype.gettoken = function(callback) {
 			}
 
 			var oauth = new OAuth.OAuth(
-				GEARAUTHENDPOINT+'/oauth/request_token',
-				GEARAUTHENDPOINT+'/oauth/access_token',
+				GEARAUTHREQUESTTOKENENDPOINT,
+				GEARAUTHACCESSTOKENENDPOINT,
 				this.gearkey,
 				this.gearsecret,
 				'1.0',
@@ -229,8 +235,8 @@ microgear.prototype.gettoken = function(callback) {
 			}
 			var verifier = require('hat')(32);
 			var oauth = new OAuth.OAuth(
-				GEARAUTHENDPOINT+'/oauth/request_token',
-				GEARAUTHENDPOINT+'/oauth/access_token',
+				GEARAUTHREQUESTTOKENENDPOINT,
+				GEARAUTHACCESSTOKENENDPOINT,
 				this.gearkey,
 				this.gearsecret,
 				'1.0',
@@ -263,7 +269,10 @@ function initiateconnection(done) {
 	self.gettoken(function(state) {
 		switch (state) {
 			case 0 : 	/* No token issue */
-						console.log('Error: request token is not issued, please check your gearkey and gearsecret');
+						if (self.appkey || self.secret)
+							console.log('Error: request token is not issued, please check your appkey and appsecret');
+						else
+							console.log('Error: request token is not issued, please check your consumerkey and consumersecret');
 						process.exit(1);
 						return;
 			case 1 :	/* Request token issued or prepare to request request token again */
@@ -288,7 +297,7 @@ function initiateconnection(done) {
 
 /**
  * Initiate NetPIE connection
- * @param  {String}   appid AppID
+ * @param  {String}   appid appid
  * @param  {Function} done  Callback
  */
 microgear.prototype.connect = function(appid,done) {
@@ -344,15 +353,22 @@ microgear.prototype.brokerconnect = function(callback) {
 	}
 
 	this.client.on('message', function (topic, message) {
-		/* if a control message */
-		if (topic.indexOf('/piegear/')==0) {
+		var plen = self.appid.length +1;
+		var rtop = topic.substr(plen,topic.length-plen);
 
-			if (self.debugmode)
-				console.log('* control message > '+topic+' : '+message);
-			/*
-				//if control message 'operation'
-				if (topic.lastIndexOf('/operation') == topic.length-10) 
-			*/
+		if (rtop.substr(0,2)=='/@') {
+			var p = (rtop.substr(1,rtop.length-1)+'/').indexOf('/');
+			var ctop = rtop.substr(2,p);
+
+			switch (ctop) {
+				case 'present' : 
+						microgear.prototype.emit('present',{event:'present',gearkey:message.toString()});
+						break;
+				case 'absent' : 
+						microgear.prototype.emit('absent',{event:'abesent',gearkey:message.toString()});
+						break;
+			}
+
 		}
 		else {
 			microgear.prototype.emit('message',topic, message);
@@ -382,6 +398,10 @@ microgear.prototype.brokerconnect = function(callback) {
 		for(var i=0; i<self.subscriptions.length; i++) {
 			if (self.debugmode) console.log('auto subscribe '+self.subscriptions[i]);
 			self.client.subscribe(self.subscriptions[i]);
+		}
+
+		if (microgear.prototype.listeners('present')) {
+			self.client.subscribe('/'+self.appid+'/@present');
 		}
 
 		microgear.prototype.emit('connected');
@@ -482,3 +502,19 @@ microgear.prototype.publish = function(topic, message, callback) {
 microgear.prototype.chat = function (gearname, message, callback) {
 	this.publish('/gearname/'+gearname, message, callback);
 }
+
+/**
+ * handle a new event listening
+ */
+microgear.prototype.on('newListener', function(event,listener) {
+	switch (event) {
+		case 'present' :
+				if (this.client) {
+					if (this.client.connected) {
+						this.subscribe('/@present');
+					}
+				}
+				break;
+	}
+
+});
