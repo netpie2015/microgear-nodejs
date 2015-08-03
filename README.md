@@ -56,7 +56,7 @@ microgear.connect(APPID);
   *  chat:<gearname> - คือสิทธ์ในการ chat กับ <gearname>
 ในขั้นตอนของการสร้าง key บนเว็บ netpie.io นักพัฒนาสามารถกำหนดสิทธิ์ขั้นพื้นฐานให้แต่ละ key ได้อยู่แล้ว หากการ create microgear อยู่ภายใต้ขอบเขตของสิทธิ์ที่มี token จะถูกจ่ายอัตโนมัติ และ microgear สามารถเชื่อมต่อ netpie platform ได้ทันที แต่หาก scope ที่ร้องขอ มากเกินกว่าที่กำหนด นักพัฒนาจะได้รับการแจ้ง ให้พิจารณาอนุมัติ microgear เป็นรายๆไป ข้อควรระวัง หาก microgear มีการกระทำการเกินกว่าสิทธิ์ที่ได้รับ เช่น publish ไปยัง topic ที่ไม่มีสิทธิ์ broker จะตัดการเชื่อมต่อของ microgear โดยอัตโนมัติ ในกรณีที่ใช้ APPKEY เราสามารถละเว้น attribute นี้ได้ เพราะ APPKEY จะได้สิทธิ์ทุกอย่างโดย default อยู่แล้ว 
 
-```
+```js
 var microgear = MicroGear.create({
     gearkey : "sXfqDcXHzbFXiLk",
     gearsecret : "DNonzg2ivwS8ceksykGntrfQjxbL98",
@@ -70,7 +70,7 @@ var microgear = MicroGear.create({
 **arguments**
 * *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ 
 
-```
+```js
 microgear.connect("happyfarm");
 ```
 ---
@@ -80,7 +80,7 @@ microgear สามารถตั้งชื่อตัวเองได้ 
 **arguments**
 * *gearname* `string` - ชื่อของ microgear นี้   
 
-```
+```js
 microgear.setname("plant");
 ```
 ---
@@ -90,7 +90,7 @@ microgear.setname("plant");
 * *gearname* `string` - ชื่อของ microgear ที่ต้องการจะส่งข้อความไปถึง 
 * *message* `string` - ข้อความ
 
-```
+```js
 microgear.chat("valve","I need water");
 ```
 ---
@@ -101,7 +101,7 @@ microgear.chat("valve","I need water");
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
 * *message* `string` - ข้อความ
 
-```
+```js
 microgear.publish("/outdoor/temp","28.5");
 ```
 ---
@@ -111,7 +111,7 @@ microgear อาจจะมีความสนใจใน topic ใดเป
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
 
-```
+```js
 microgear.subscribe("/outdoor/temp");
 ```
 ---
@@ -121,17 +121,14 @@ microgear.subscribe("/outdoor/temp");
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
 
-```
+```js
 microgear.unsubscribe("/outdoor/temp");
 ```
-
-
-
 
 ---
 ## Events
 application ที่รันบน microgear จะมีการทำงานในแบบ event driven คือเป็นการทำงานตอบสนองต่อ event ต่างๆ ด้วยการเขียน callback function ขึ้นมารองรับ
-```
+```js
 miucrogear.on(eventname,function(param) {
 	/* do something */
 });
