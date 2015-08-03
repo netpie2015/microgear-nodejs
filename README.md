@@ -74,7 +74,7 @@ microgear.connect("happyfarm");
 ```
 ---
 **void microgear.setname (*gearname*)**
-microgear สามารถตั้งชื่อตัวเองได้ (ตามสิทธิ์ของ gearkey) ซึ่งสามารถใช้เป็นชื่อเรียกในการใช้ฟังก์ชั่น chat()
+microgear สามารถตั้งชื่อตัวเองได้ ซึ่งสามารถใช้เป็นชื่อเรียกในการใช้ฟังก์ชั่น chat()
 
 **arguments**
 * *gearname* `string` - ชื่อของ microgear นี้   
@@ -94,7 +94,7 @@ microgear.chat("valve","I need water");
 ```
 ---
 **void microgear.publish (*topic*, *message*)**
-ในการณีที่ต้องการส่งข้อความแบบไม่เจาะจงผู้รับ สามารถใช้ฟังชั่น publish ไปยัง topic ที่กำหนดได้ (ขึ้นอยู่กับสิทธิ์ของ gearkey) ซึ่งจะมีแต่ microgear ที่ subscribe topoic นี้เท่านั้น ที่จะได้รับข้อความ
+ในการณีที่ต้องการส่งข้อความแบบไม่เจาะจงผู้รับ สามารถใช้ฟังชั่น publish ไปยัง topic ที่กำหนดได้ ซึ่งจะมีแต่ microgear ที่ subscribe topoic นี้เท่านั้น ที่จะได้รับข้อความ
 
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
@@ -105,7 +105,7 @@ microgear.publish("/outdoor/temp","28.5");
 ```
 ---
 **void microgear.subscribe (*topic*)**
-microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้ (ขึ้นอยู่กับสิทธิ์ของ gearkey ด้วย)
+microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้
 
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
