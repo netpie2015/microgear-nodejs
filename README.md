@@ -41,7 +41,7 @@ microgear.connect(APPID);
 ```
 ## การใช้งาน library
 ---
-**microgear create(config)**
+**microgear create (config)**
 
 **arguments**
 * *config* เป็น json object ที่ที่มี attribute ดังนี้
@@ -51,10 +51,10 @@ microgear.connect(APPID);
 
 **scope**
 เป็นการต่อกันของ string ในรูปแบบต่อไปนี้ คั่นด้วยเครื่องหมาย comma
-  * [r][w]:</topic/path> - r และ w คือสิทธิ์ในการ publish ละ subscribe topic ดังที่ระบุ เช่น rw:/outdoor/temp
-  *  name:<gearname> - คือสิทธิ์ในการตั้งชื่อตัวเองว่า <gearname>
-  *  chat:<gearname> - คือสิทธ์ในการ chat กับ <gearname>
-ในขั้นตอนของการสร้าง key บนเว็บ netpie.io นักพัฒนาสามารถกำหนดสิทธิ์ขั้นพื้นฐานให้แต่ละ key ได้อยู่แล้ว หากการ create microgear อยู่ภายใต้ขอบเขตของสิทธิ์ที่มี token จะถูกจ่ายอัตโนมัติ และ microgear สามารถเชื่อมต่อ netpie platform ได้ทันที แต่หาก scope ที่ร้องขอ มากเกินกว่าที่กำหนด นักพัฒนาจะได้รับการแจ้ง ให้พิจารณาอนุมัติ microgear เป็นรายๆไป ข้อควรระวัง หาก microgear มีการกระทำการเกินกว่าสิทธิ์ที่ได้รับ เช่น publish ไปยัง topic ที่ไม่มีสิทธิ์ broker จะตัดการเชื่อมต่อของ microgear โดยอัตโนมัติ ในกรณีที่ใช้ APPKEY เราสามารถละเว้น attribute นี้ได้ เพราะ APPKEY จะได้สิทธิ์ทุกอย่างโดย default อยู่แล้ว 
+  * [r][w]:&lt;/topic/path&gt; - r และ w คือสิทธิ์ในการ publish ละ subscribe topic ดังที่ระบุ เช่น rw:/outdoor/temp
+  *  name:&lt;gearname&gt; - คือสิทธิ์ในการตั้งชื่อตัวเองว่า &lt;gearname&gt;
+  *  chat:&lt;gearname&gt; - คือสิทธ์ในการ chat กับ &lt;gearname&gt;
+ในขั้นตอนของการสร้าง key บนเว็บ netpie.io นักพัฒนาสามารถกำหนดสิทธิ์ขั้นพื้นฐานให้แต่ละ key ได้อยู่แล้ว หากการ create microgear อยู่ภายใต้ขอบเขตของสิทธิ์ที่มี token จะถูกจ่ายอัตโนมัติ และ microgear จะสามารถเชื่อมต่อ netpie platform ได้ทันที แต่หาก scope ที่ร้องขอนั้นมากเกินกว่าสิทธิ์ที่กำหนดไว้ นักพัฒนาจะได้รับ notification ให้พิจารณาอนุมัติ microgear ที่เข้ามาขอเชื่อมต่อ ข้อควรระวัง หาก microgear มีการกระทำการเกินกว่าสิทธิ์ที่ได้รับไป เช่น พยายามจะ publish ไปยัง topic ที่ตัวเองไม่มีสิทธิ์ netpie จะตัดการเชื่อมต่อของ microgear โดยอัตโนมัติ ในกรณีที่ใช้ APPKEY เป็น gearkey เราสามารถละเว้น attribute นี้ได้ เพราะ APPKEY จะได้สิทธิ์ทุกอย่างในฐานะของเจ้าของ app โดย default อยู่แล้ว 
 
 ```js
 var microgear = MicroGear.create({
@@ -65,16 +65,15 @@ var microgear = MicroGear.create({
 ```
 ---
 ## microgear
-**void microgear.connect(*appid*)**
+**void microgear.connect (*appid*, *callback*)**
 
 **arguments**
 * *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ 
-
 ```js
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.setname(*gearname*)**
+**void microgear.setname (*gearname*)**
 microgear สามารถตั้งชื่อตัวเองได้ (ตามสิทธิ์ของ gearkey) ซึ่งสามารถใช้เป็นชื่อเรียกในการใช้ฟังก์ชั่น chat()
 
 **arguments**
@@ -84,7 +83,7 @@ microgear สามารถตั้งชื่อตัวเองได้ 
 microgear.setname("plant");
 ```
 ---
-**void microgear.chat(*gearname*, *message*)**
+**void microgear.chat (*gearname*, *message*)**
 
 **arguments**
 * *gearname* `string` - ชื่อของ microgear ที่ต้องการจะส่งข้อความไปถึง 
@@ -94,7 +93,7 @@ microgear.setname("plant");
 microgear.chat("valve","I need water");
 ```
 ---
-**void microgear.publish(*topic*, *message*)**
+**void microgear.publish (*topic*, *message*)**
 ในการณีที่ต้องการส่งข้อความแบบไม่เจาะจงผู้รับ สามารถใช้ฟังชั่น publish ไปยัง topic ที่กำหนดได้ (ขึ้นอยู่กับสิทธิ์ของ gearkey) ซึ่งจะมีแต่ microgear ที่ subscribe topoic นี้เท่านั้น ที่จะได้รับข้อความ
 
 **arguments**
@@ -105,7 +104,7 @@ microgear.chat("valve","I need water");
 microgear.publish("/outdoor/temp","28.5");
 ```
 ---
-**void microgear.subscribe(*topic*)**
+**void microgear.subscribe (*topic*)**
 microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้ (ขึ้นอยู่กับสิทธิ์ของ gearkey ด้วย)
 
 **arguments**
@@ -115,7 +114,7 @@ microgear อาจจะมีความสนใจใน topic ใดเป
 microgear.subscribe("/outdoor/temp");
 ```
 ---
-**void microgear.unsubscribe(*topic*)**
+**void microgear.unsubscribe (*topic*)**
 ยกเลิกการ subscribe
 
 **arguments**
@@ -127,19 +126,31 @@ microgear.unsubscribe("/outdoor/temp");
 
 ---
 ## Events
-application ที่รันบน microgear จะมีการทำงานในแบบ event driven คือเป็นการทำงานตอบสนองต่อ event ต่างๆ ด้วยการเขียน callback function ขึ้นมารองรับ
-```js
-miucrogear.on(eventname,function(param) {
-	/* do something */
-});
-```
+application ที่รันบน microgear จะมีการทำงานในแบบ event driven คือเป็นการทำงานตอบสนองต่อ event ต่างๆ ด้วยการเขียน callback function ขึ้นมารองรับในลักษณะนี้
+
+**void microgear.on (*event*, *callback*)**
+
+**arguments**
+* *event* `string` - ชื่อ event
+* *callback* `function` - callback function
+
 netpie platform เวอร์ชั่นปัจจุบัน มี event ดังต่อไปนี้
 
 **Event: 'connected'**
 เกืดขึ้นเมื่อ microgear library เชื่อมต่อกับ platform สำเร็จ
+```
+microgear.on("connected", function() {
+	console.log("connected");
+});
+```
 
 **Event: 'closed'**
 เกืดขึ้นเมื่อ microgear library ตัดการเชื่อมต่อกับ platform
+```
+microgear.on("closed", function() {
+	console.log("closed");
+});
+```
 
 **Event: 'message'**
 เมื่อมี message เข้ามา จะเกิด event นี้ข้น พร้อมกับข้อมูลเกี่ยวกับ message นั้น
