@@ -40,7 +40,6 @@ microgear.on('closed', function() {
 microgear.connect(APPID);
 ```
 ## การใช้งาน library
----
 **microgear create (config)**
 
 **arguments**
@@ -153,7 +152,7 @@ microgear.on("closed", function() {
 ```
 
 **Event: 'message'**
-เมื่อมี message เข้ามา จะเกิด event นี้ข้น พร้อมกับข้อมูลเกี่ยวกับ message นั้น
+เมื่อมี message เข้ามา จะเกิด event นี้ขึ้น พร้อมกับส่งผ่านข้อมูลเกี่ยวกับ message นั้นมาทาง argument ของ callback function
 ```
 microgear.on("message", function(topic,msg) {
 	console.log("Incoming message: "+mesage);
