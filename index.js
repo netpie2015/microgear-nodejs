@@ -344,7 +344,7 @@ microgear.prototype.brokerconnect = function(callback) {
 
 	if (this.client) {
 		/* subscribe for control messages */
-		this.client.subscribe('/piegear/'+this.clientid+'/#');
+		this.client.subscribe('/&id/'+this.clientid+'/#');
 		if (typeof(callback)=='function') callback(null);
 	}
 	else {
@@ -356,7 +356,7 @@ microgear.prototype.brokerconnect = function(callback) {
 		var plen = self.appid.length +1;
 		var rtop = topic.substr(plen,topic.length-plen);
 
-		if (rtop.substr(0,2)=='/@') {
+		if (rtop.substr(0,2)=='/&') {
 			var p = (rtop.substr(1,rtop.length-1)+'/').indexOf('/');
 			var ctop = rtop.substr(2,p);
 
@@ -401,10 +401,10 @@ microgear.prototype.brokerconnect = function(callback) {
 		}
 
 		if (microgear.prototype.listeners('present')) {
-			self.client.subscribe('/'+self.appid+'/@present');
+			self.client.subscribe('/'+self.appid+'/&present');
 		}
 		if (microgear.prototype.listeners('absent')) {
-			self.client.subscribe('/'+self.appid+'/@absent');
+			self.client.subscribe('/'+self.appid+'/&absent');
 		}
 
 		microgear.prototype.emit('connected');
@@ -514,17 +514,21 @@ microgear.prototype.on('newListener', function(event,listener) {
 		case 'present' :
 				if (this.client) {
 					if (this.client.connected) {
-						this.subscribe('/@present');
+						this.subscribe('/&present');
 					}
 				}
 				break;
 		case 'absent' :
 				if (this.client) {
 					if (this.client.connected) {
-						this.subscribe('/@absent');
+						this.subscribe('/&absent');
 					}
 				}
 				break;
 	}
 
 });
+
+microgear.prototype.readstream = function(stream,filter) {
+	this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');		
+}
