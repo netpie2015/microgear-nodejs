@@ -532,3 +532,7 @@ microgear.prototype.on('newListener', function(event,listener) {
 microgear.prototype.readstream = function(stream,filter) {
 	this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');		
 }
+
+microgear.prototype.writestream = function(stream,data) {
+	this.publish('/@writestream/'+stream,'{"data":'+data+'}');		
+}
