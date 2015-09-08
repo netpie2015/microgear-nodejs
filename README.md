@@ -158,6 +158,22 @@ microgear.on("closed", function() {
 });
 ```
 
+**Event: 'rejected'**
+เป็น event ที่เกิดเมื่อ microgear เชื่อมต่อไม่สำเร็จ เนื่องจาก token ถูกปฏิเสธ อาจเป็นเพราะ token ถูก revoke หรือ disable
+```
+microgear.on("rejected", function(info) {
+	console.log("Connection rejected: "+info);
+});
+```
+
+**Event: 'error'**
+เป็น event ที่เกิดมี error ขึ้นภายใน microgear
+```
+microgear.on("error", function(err) {
+	console.log("Error: "+err);
+});
+```
+
 **Event: 'message'**
 เมื่อมี message เข้ามา จะเกิด event นี้ขึ้น พร้อมกับส่งผ่านข้อมูลเกี่ยวกับ message นั้นมาทาง argument ของ callback function
 ```
