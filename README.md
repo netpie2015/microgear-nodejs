@@ -122,6 +122,13 @@ microgear.subscribe("/outdoor/temp");
 ```js
 microgear.unsubscribe("/outdoor/temp");
 ```
+---
+**void microgear.resettoken ()**
+ล้าง token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่
+
+```js
+microgear.resettoken();
+```
 
 ---
 ## Events
