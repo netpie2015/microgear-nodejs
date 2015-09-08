@@ -9,13 +9,13 @@ module.exports.create = create;
  * API Endpoint to get an OAuth Request Token 
  * @type {String}
  */
-const GEARAUTHREQUESTTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/request_token';
+const GEARAUTHREQUESTTOKENENDPOINT = 'http://ga.netpie.io:8080/oauth/request_token';
 
 /**
  * API Endpoint to get an OAuth Access Token 
  * @type {String}
  */
-const GEARAUTHACCESSTOKENENDPOINT = 'http://gearauth.netpie.io:8080/oauth/access_token';
+const GEARAUTHACCESSTOKENENDPOINT = 'http://ga.netpie.io:8080/oauth/access_token';
 
 /**
  * Microgear API version
@@ -30,6 +30,7 @@ const TOKENCACHEFILENAME = 'microgear.cache';
 const MINTOKDELAYTIME = 100;
 const MAXTOKDELAYTIME = 30000;
 const DEBUGMODE = false;
+const ACCESSTOKENRETRYINTERVAL = 5000;
 
 var self = null;
 var events = require('events');
@@ -185,7 +186,7 @@ microgear.prototype.gettoken = function(callback) {
 
 		this.gearexaddress = endpoint.hostname;
 		this.gearexport = endpoint.port;
-		if (callback) callback(3);
+		if (typeof(callback)=='function') callback(3);
 	}
 	else {
 		this.requesttoken = getGearCacheValue('requesttoken');
@@ -212,18 +213,18 @@ microgear.prototype.gettoken = function(callback) {
 				if (!err) {
 					this.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint};
 					setGearCacheValue('accesstoken',this.accesstoken);
-					if (callback) callback(2);
+					if (typeof(callback)=='function') callback(2);
 				} 
 				else {
 					switch (err.statusCode) {
 						case 401:	// not authorized yet
-									if (callback) callback(1);
+									if (typeof(callback)=='function') callback(1);
 									break;
 						case 500:	// eg. 500 request token not found
 						default	:	
-									clearGearCache();
-									if (callback) callback(1);
- 									break
+									microgear.prototype.emit('rejected','Request token rejected');
+									if (typeof(callback)=='function') callback(1);
+ 									break;
 					}
 				}
 			});
@@ -248,9 +249,9 @@ microgear.prototype.gettoken = function(callback) {
 				if (!err) {
 				    this.requesttoken = {token: oauth_token, secret: oauth_token_secret, verifier: verifier};
 					setGearCacheValue('requesttoken',this.requesttoken);
-					if (callback) callback(1);
+					if (typeof(callback)=='function') callback(1);
 				}
-				else if (callback) callback(0);
+				else if (typeof(callback)=='function') callback(0);
 			});
 		}
 	}
@@ -269,10 +270,7 @@ function initiateconnection(done) {
 	self.gettoken(function(state) {
 		switch (state) {
 			case 0 : 	/* No token issue */
-						if (self.appkey || self.secret)
-							console.log('Error: request token is not issued, please check your appkey and appsecret');
-						else
-							console.log('Error: request token is not issued, please check your consumerkey and consumersecret');
+						console.log('Error: request token is not issued, please check your key and secret.');
 						process.exit(1);
 						return;
 			case 1 :	/* Request token issued or prepare to request request token again */
@@ -294,6 +292,20 @@ function initiateconnection(done) {
 		}
 	});
 }
+
+process.on('uncaughtException', function(err) {
+	if (err == 'Error: Connection refused: Not authorized') {
+		/* accesstoken seems to be revoked, remove accesstoken from cache */
+		self.client.end();
+		microgear.prototype.emit('rejected','Access token rejected');
+
+		setTimeout(function() {
+			initiateconnection(function() {
+				if (self.debugmode) console.log('auto reconnect');
+			});
+		}, ACCESSTOKENRETRYINTERVAL);
+	}
+});
 
 /**
  * Initiate NetPIE connection
@@ -380,19 +392,6 @@ microgear.prototype.brokerconnect = function(callback) {
 		this.emit('closed');
 	});
 
-	process.on('uncaughtException', function(err) {
-		if (err == 'Error: Connection refused: Not authorized') {
-			/* accesstoken seems to be revoked, remove accesstoken from cache */
-			clearGearCache();
-			self.client.end();
-
-			initiateconnection(function() {
-				if (self.debugmode) console.log('auto reconnect');
-			});
-		}
-	});
-	
-
 	this.client.on('connect', function(pack) {
 
 		for(var i=0; i<self.subscriptions.length; i++) {
@@ -422,22 +421,27 @@ microgear.prototype.brokerconnect = function(callback) {
  * @param  {Function} callback Callback
  */
 microgear.prototype.subscribe = function(topic,callback) {
-	this.client.subscribe('/'+this.appid+topic, function(err,granted) {
-		if (granted && granted[0]) {
-			if (self.subscriptions.indexOf('/'+self.appid+topic)) {
-				self.subscriptions.push('/'+self.appid+topic);
-			}
-		}
-		if (typeof(callback)=='function') {
-			if (err) callback(0);
-			else {
-				if (granted && granted[0] && granted[0].qos==0||granted[0].qos==1||granted[0].qos==2) {
-					callback(1);
+	if (this.client.connected) {
+
+		this.client.subscribe('/'+this.appid+topic, function(err,granted) {
+			if (granted && granted[0]) {
+				if (self.subscriptions.indexOf('/'+self.appid+topic)) {
+					self.subscriptions.push('/'+self.appid+topic);
 				}
-				else callback(0);
 			}
-		}
-	});
+			if (typeof(callback)=='function') {
+				if (err) callback(0);
+				else {
+					if (granted && granted[0] && granted[0].qos==0||granted[0].qos==1||granted[0].qos==2) {
+						callback(1);
+					}
+					else callback(0);
+				}
+			}
+		});
+	}
+	else
+		microgear.prototype.emit('error','microgear is disconnected, cannot subscribe.');
 }
 
 /**
@@ -474,7 +478,6 @@ microgear.prototype.setname = function (gearname, callback) {
 
 /**
  * Reset name of this instance
- * @param  {String}   gearname Gear name
  * @param  {Function} callback Callback
  */
 microgear.prototype.unsetname = function (callback) {
@@ -493,7 +496,10 @@ microgear.prototype.unsetname = function (callback) {
  * @param  {Function} callback Callabck
  */
 microgear.prototype.publish = function(topic, message, callback) {
-	this.client.publish('/'+this.appid+topic, message);
+	if (this.client.connected)
+		this.client.publish('/'+this.appid+topic, message);
+	else
+		microgear.prototype.emit('error','microgear is disconnected, cannot publish.');
 }
 
 /**
@@ -526,13 +532,29 @@ microgear.prototype.on('newListener', function(event,listener) {
 				}
 				break;
 	}
-
 });
 
+/**
+ * call api request on stream data, this method is available only for api tester at the moment
+ * @param  {String}   stream The name of stream
+ * @param  {String}   filter  Query condition
+ */
 microgear.prototype.readstream = function(stream,filter) {
 	this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');		
 }
 
+/**
+ * call api request to record stream data, this method is available only for api tester at the moment
+ * @param  {String}   stream The name of stream
+ * @param  {String}   data  Stream data
+ */
 microgear.prototype.writestream = function(stream,data) {
 	this.publish('/@writestream/'+stream,'{"data":'+data+'}');		
+}
+
+/**
+ * Reset token from cache
+ */
+microgear.prototype.resettoken = function() {
+	clearGearCache();
 }
