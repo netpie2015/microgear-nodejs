@@ -6,16 +6,11 @@
 module.exports.create = create;
 
 /**
- * API Endpoint to get an OAuth Request Token 
+ * General API Endpoint
  * @type {String}
  */
-const GEARAUTHREQUESTTOKENENDPOINT = 'http://ga.netpie.io:8080/oauth/request_token';
-
-/**
- * API Endpoint to get an OAuth Access Token 
- * @type {String}
- */
-const GEARAUTHACCESSTOKENENDPOINT = 'http://ga.netpie.io:8080/oauth/access_token';
+const GEARAPIADDRESS = 'ga.netpie.io';
+const GEARAPIPORT = '8080';
 
 /**
  * Microgear API version
@@ -34,6 +29,7 @@ const ACCESSTOKENRETRYINTERVAL = 5000;
 
 var self = null;
 var events = require('events');
+var http = require('http');
 var mqtt = require('mqtt');
 var OAuth = require('oauth');
 var crypto = require('crypto');
@@ -176,7 +172,7 @@ function create(param) {
  * @param  {Function} callback Callback
  */
 microgear.prototype.gettoken = function(callback) {
-
+    var that = this;
     if (this.debugmode) console.log('Check stored token');
 
     this.accesstoken = getGearCacheValue('accesstoken');
@@ -200,8 +196,8 @@ microgear.prototype.gettoken = function(callback) {
             }
 
             var oauth = new OAuth.OAuth(
-                GEARAUTHREQUESTTOKENENDPOINT,
-                GEARAUTHACCESSTOKENENDPOINT,
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/request_token',
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/access_token',
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
@@ -211,8 +207,12 @@ microgear.prototype.gettoken = function(callback) {
 
             oauth.getOAuthAccessToken(this.requesttoken.token, this.requesttoken.secret,this.requesttoken.verifier, function (err, oauth_token, oauth_token_secret, results){
                 if (!err) {
-                    this.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint};
+                    var hkey = oauth_token_secret+'&'+that.gearsecret;
+                    var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace('/','_');
+
+                    this.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
                     setGearCacheValue('accesstoken',this.accesstoken);
+                    setGearCacheValue('requesttoken',null);
                     if (typeof(callback)=='function') callback(2);
                 } 
                 else {
@@ -236,8 +236,8 @@ microgear.prototype.gettoken = function(callback) {
             }
             var verifier = require('hat')(32);
             var oauth = new OAuth.OAuth(
-                GEARAUTHREQUESTTOKENENDPOINT,
-                GEARAUTHACCESSTOKENENDPOINT,
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/request_token',
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/access_token',
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
@@ -556,5 +556,15 @@ microgear.prototype.writestream = function(stream,data) {
  * Reset token from cache
  */
 microgear.prototype.resettoken = function() {
+    this.accesstoken = getGearCacheValue('accesstoken');
+    if (this.accesstoken) {
+        var rq = http.request({
+            host: GEARAPIADDRESS,
+            path: '/api/revoke/'+this.accesstoken.token+'/'+this.accesstoken.revokecode,
+            port: GEARAPIPORT,
+            method: 'GET'
+        });
+        rq.end();
+    }
     clearGearCache();
 }
