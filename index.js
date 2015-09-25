@@ -553,18 +553,38 @@ microgear.prototype.writestream = function(stream,data) {
 }
 
 /**
- * Reset token from cache
+ * Revoke and remove token from cache
  */
-microgear.prototype.resettoken = function() {
+microgear.prototype.resettoken = function(callback) {
     this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
-        var rq = http.request({
+        var opt = {
             host: GEARAPIADDRESS,
             path: '/api/revoke/'+this.accesstoken.token+'/'+this.accesstoken.revokecode,
             port: GEARAPIPORT,
             method: 'GET'
+        };
+        var rq = http.request(opt, function(res){
+            var result = '';
+            res.on('data', function(chunk){
+                result += chunk;
+            });             
+            res.on('end', function(){
+                console.log('result=='+result);
+                if (result !== 'FAILED') {
+                    clearGearCache();
+                    if (typeof(callback)=='function') callback(null);
+                }
+                else if (typeof(callback)=='function') callback(result);
+            });
+        });
+        rq.on('error',function(e) {
+            microgear.prototype.emit('error','Reset token error : '+e.message);
+            if(typeof(callback)=='function') callback(e.message);
         });
         rq.end();
     }
-    clearGearCache();
+    else {
+        if (typeof(callback)=='function') callback(null);
+    }
 }
