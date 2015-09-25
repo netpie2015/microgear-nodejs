@@ -127,7 +127,7 @@ microgear.unsubscribe("/outdoor/temp");
 ล้าง token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่
 
 ```js
-microgear.resettoken();
+microgear.resettoken(callback);
 ```
 
 ---
