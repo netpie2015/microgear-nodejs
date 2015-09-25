@@ -123,11 +123,15 @@ microgear.subscribe("/outdoor/temp");
 microgear.unsubscribe("/outdoor/temp");
 ```
 ---
-**void microgear.resettoken ()**
-ล้าง token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่
+**void microgear.resettoken (callback)**
+ออนไลน์ส่งคำสั่ง revoke token และลบ token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่ในการเชื่อมต่อครั้งต่อไป
+
+**arguments**
+* *callback* `function` - callback function ที่จะถูกเรียกเมื่อการ reset token เสร็จสิ้น
 
 ```js
-microgear.resettoken(callback);
+microgear.resettoken(function(result){
+});
 ```
 
 ---
