@@ -570,7 +570,6 @@ microgear.prototype.resettoken = function(callback) {
                 result += chunk;
             });             
             res.on('end', function(){
-                console.log('result=='+result);
                 if (result !== 'FAILED') {
                     clearGearCache();
                     if (typeof(callback)=='function') callback(null);
