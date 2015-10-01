@@ -208,7 +208,7 @@ microgear.prototype.gettoken = function(callback) {
             oauth.getOAuthAccessToken(this.requesttoken.token, this.requesttoken.secret,this.requesttoken.verifier, function (err, oauth_token, oauth_token_secret, results){
                 if (!err) {
                     var hkey = oauth_token_secret+'&'+that.gearsecret;
-                    var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace('/','_');
+                    var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace(/\//g,'_');
 
                     this.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
                     setGearCacheValue('accesstoken',this.accesstoken);
@@ -558,9 +558,10 @@ microgear.prototype.writestream = function(stream,data) {
 microgear.prototype.resettoken = function(callback) {
     this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
+        var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
         var opt = {
             host: GEARAPIADDRESS,
-            path: '/api/revoke/'+this.accesstoken.token+'/'+this.accesstoken.revokecode,
+            path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
             port: GEARAPIPORT,
             method: 'GET'
         };
