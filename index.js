@@ -59,6 +59,7 @@ var microgear = function(gearkey,gearsecret) {
     this.gearexaddress = null;
     this.gearexport = null;
     this.subscriptions = [];
+    this.options = {};
 }
 microgear.prototype = new events.EventEmitter;
 
@@ -286,7 +287,7 @@ function initiateconnection(done) {
             case 3 :    /* Has access token ready for connecting broker */
                         toktime = 1;
                         self.brokerconnect(function() {
-                            if (done) done();
+                            if (typeof(done)=='function') done();
                         });
                         return;
         }
@@ -312,8 +313,21 @@ process.on('uncaughtException', function(err) {
  * @param  {String}   appid appid
  * @param  {Function} done  Callback
  */
-microgear.prototype.connect = function(appid,done) {
+microgear.prototype.connect = function(appid,arg1,arg2) {
+    var done = null;
     this.appid = appid;
+
+    if (typeof(arg1)=='function') done = arg1;
+    else {
+        if (typeof(arg1)=='object') {
+            this.options = arg1;
+            if (this.options && this.options.will && this.options.will.topic) {
+                this.options.will.topic = '/'+appid+this.options.will.topic;
+            }
+        }
+        if (typeof(arg2)=='function') done = arg2;
+    }
+
     initiateconnection(done);
 }
 
@@ -350,7 +364,8 @@ microgear.prototype.brokerconnect = function(callback) {
             password: mqttpassword,
             clientId: mqttclientid,
             protocolVersion: 3,
-            keepalive: 10
+            keepalive: 10,
+            will: this.options?this.options.will:{}
         }
     );
 
@@ -495,9 +510,10 @@ microgear.prototype.unsetname = function (callback) {
  * @param  {String}   message  Message
  * @param  {Function} callback Callabck
  */
-microgear.prototype.publish = function(topic, message, callback) {
+microgear.prototype.publish = function(topic, message, options) {
+    if (!options) options = {};
     if (this.client.connected)
-        this.client.publish('/'+this.appid+topic, message);
+        this.client.publish('/'+this.appid+topic, message, options);
     else
         microgear.prototype.emit('error','microgear is disconnected, cannot publish.');
 }
@@ -508,8 +524,8 @@ microgear.prototype.publish = function(topic, message, callback) {
  * @param  {String}   message  Message
  * @param  {Function} callback 
  */
-microgear.prototype.chat = function (gearname, message, callback) {
-    this.publish('/gearname/'+gearname, message, callback);
+microgear.prototype.chat = function (gearname, message, options) {
+    this.publish('/gearname/'+gearname, message, options);
 }
 
 /**
