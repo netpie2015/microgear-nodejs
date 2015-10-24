@@ -508,10 +508,18 @@ microgear.prototype.unsetname = function (callback) {
  * Publish message
  * @param  {String}   topic    Topic string
  * @param  {String}   message  Message
- * @param  {Function} callback Callabck
+ * @param  {Object} param Publish Parameters
  */
-microgear.prototype.publish = function(topic, message, options) {
-    if (!options) options = {};
+microgear.prototype.publish = function(topic, message, param) {
+	var options;
+
+    switch (typeof(param)) {
+        case 'object'  : options = param;
+                         break;
+        case 'boolean' : options = {retain : param};
+                         break;
+        default        : options = {};   							
+    }
     if (this.client.connected)
         this.client.publish('/'+this.appid+topic, message, options);
     else
@@ -570,6 +578,7 @@ microgear.prototype.writestream = function(stream,data) {
 
 /**
  * Revoke and remove token from cache
+ * @param  {Function} callback Callabck
  */
 microgear.prototype.resettoken = function(callback) {
     this.accesstoken = getGearCacheValue('accesstoken');
