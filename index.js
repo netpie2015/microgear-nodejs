@@ -577,6 +577,23 @@ microgear.prototype.writestream = function(stream,data) {
 }
 
 /**
+ * read data from a specific postbox. data will be pushed through the topic /@readpostbox/<box>
+ * @param  {String}   box The name of the postbox
+ */
+microgear.prototype.readpostbox = function(box) {
+    this.publish('/@readpostbox/'+box);
+}
+
+/**
+ * put data to a specific postbox
+ * @param  {String}   box The name of the postbox
+ * @param  {String}   data  the text data to be stored
+ */
+microgear.prototype.writepostbox = function(box,data) {
+    this.publish('/@writepostbox/'+box,data);      
+}
+
+/**
  * Revoke and remove token from cache
  * @param  {Function} callback Callabck
  */
