@@ -134,6 +134,14 @@ microgear.resettoken(function(result){
 });
 ```
 
+เนื่องจาก resettoken() เป็น asynchronous function หากต้องการ connect หลังจาก resettoken ต้องเขียนโค้ดในลักษณะนี้
+```js
+microgear.resettoken(function(result){
+    microgear.connect(APPID);
+});
+```
+
+
 ---
 ## Events
 application ที่รันบน microgear จะมีการทำงานในแบบ event driven คือเป็นการทำงานตอบสนองต่อ event ต่างๆ ด้วยการเขียน callback function ขึ้นมารองรับในลักษณะนี้
