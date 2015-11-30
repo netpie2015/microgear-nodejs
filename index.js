@@ -9,14 +9,15 @@ module.exports.create = create;
  * General API Endpoint
  * @type {String}
  */
-const GEARAPIADDRESS = 'ga.netpie.io';
+//const GEARAPIADDRESS = 'ga.netpie.io';
+const GEARAPIADDRESS = '127.0.0.1';
 const GEARAPIPORT = '8080';
 
 /**
  * Microgear API version
  * @type {String}
  */
-const APIVER = '1.0n';
+const MGREV = 'NJS1a;';
 
 /**
  * Constants
@@ -46,10 +47,12 @@ var appdir = require('path').dirname(topModule.filename);
  * @param  {String} gearsecret Gear secret
  * @return {[type]}            [description]
  */
-var microgear = function(gearkey,gearsecret) {
+var microgear = function(gearkey,gearsecret,gearlabel) {
     this.debugmode = DEBUGMODE;
     this.gearkey = gearkey;
     this.gearsecret = gearsecret;
+    this.gearlabel = gearlabel?gearlabel.substring(0,16):null;
+    //this.gearlabel = 'f';
     this.appid = null;
     this.gearname = null;
     this.accesstoken = null;
@@ -156,7 +159,7 @@ function create(param) {
     var scope = param.scope;
 
     if (param.gearkey && param.gearsecret) {
-        var mg = new microgear(param.gearkey,param.gearsecret);
+        var mg = new microgear(param.gearkey,param.gearsecret,param.label);
 
         mg.scope = param.scope;
 
@@ -176,8 +179,8 @@ microgear.prototype.gettoken = function(callback) {
     var that = this;
     if (this.debugmode) console.log('Check stored token');
 
-    this.accesstoken = getGearCacheValue('accesstoken');
-
+    if (!this.accesstoken)
+        this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
         var endpoint = require('url').parse(this.accesstoken.endpoint);
 
@@ -186,7 +189,8 @@ microgear.prototype.gettoken = function(callback) {
         if (typeof(callback)=='function') callback(3);
     }
     else {
-        this.requesttoken = getGearCacheValue('requesttoken');
+        if (!this.requesttoken)
+            this.requesttoken = getGearCacheValue('requesttoken');
         if (this.requesttoken) {
             /* send requesttoken to obtain accesstoken*/
 
@@ -197,8 +201,8 @@ microgear.prototype.gettoken = function(callback) {
             }
 
             var oauth = new OAuth.OAuth(
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/request_token',
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/access_token',
+                null,
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken',
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
@@ -211,9 +215,14 @@ microgear.prototype.gettoken = function(callback) {
                     var hkey = oauth_token_secret+'&'+that.gearsecret;
                     var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace(/\//g,'_');
 
-                    this.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
-                    setGearCacheValue('accesstoken',this.accesstoken);
-                    setGearCacheValue('requesttoken',null);
+                    that.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
+                    if (results.flag != 'S') {
+                        setGearCacheValue('accesstoken',that.accesstoken);
+                        setGearCacheValue('requesttoken',null);
+                    }
+                    else {
+                        clearGearCache();
+                    }
                     if (typeof(callback)=='function') callback(2);
                 } 
                 else {
@@ -229,16 +238,18 @@ microgear.prototype.gettoken = function(callback) {
                     }
                 }
             });
-
         }
         else {
+            var verifier;
             if (self.debugmode) {
                 console.log("Requesting a request token.");
             }
-            var verifier = require('hat')(32);
+            if (this.gearlabel) verifier = MGREV+this.gearlabel;
+            else verifier = MGREV+'_'+require('hat')(28);
+
             var oauth = new OAuth.OAuth(
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/request_token',
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/oauth/access_token',
+                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken',
+                null,
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
@@ -248,8 +259,8 @@ microgear.prototype.gettoken = function(callback) {
 
             oauth.getOAuthRequestToken({},function(err, oauth_token, oauth_token_secret, results ){
                 if (!err) {
-                    this.requesttoken = {token: oauth_token, secret: oauth_token_secret, verifier: verifier};
-                    setGearCacheValue('requesttoken',this.requesttoken);
+                    that.requesttoken = {token: oauth_token, secret: oauth_token_secret, verifier: verifier};
+                    setGearCacheValue('requesttoken',that.requesttoken);
                     if (typeof(callback)=='function') callback(1);
                 }
                 else if (typeof(callback)=='function') callback(0);
@@ -295,17 +306,7 @@ function initiateconnection(done) {
 }
 
 process.on('uncaughtException', function(err) {
-    if (err == 'Error: Connection refused: Not authorized') {
-        /* accesstoken seems to be revoked, remove accesstoken from cache */
-        self.client.end();
-        microgear.prototype.emit('rejected','Access token rejected');
-
-        setTimeout(function() {
-            initiateconnection(function() {
-                if (self.debugmode) console.log('auto reconnect');
-            });
-        }, ACCESSTOKENRETRYINTERVAL);
-    }
+    microgear.prototype.emit(err);
 });
 
 /**
@@ -378,6 +379,25 @@ microgear.prototype.brokerconnect = function(callback) {
         if (typeof(callback)=='function') callback('error');
         return;
     }
+
+    this.client.on('error', function(err) {
+        switch (err.toString()) {
+            case 'Error: Connection refused: Bad username or password' : // code 4
+                // token may be nolonger valid, try to request a new one
+                clearGearCache();
+                self.client.end();
+                setTimeout(function() {
+                    initiateconnection(function() {
+                        if (self.debugmode) console.log('auto reconnect');
+                    });
+                }, ACCESSTOKENRETRYINTERVAL);
+                break;
+            case 'Error: Connection refused: Not authorized' : // code 5
+                console.log(5);
+                break;
+        }
+
+    });
 
     this.client.on('message', function (topic, message) {
         var plen = self.appid.length +1;
