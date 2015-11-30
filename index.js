@@ -9,8 +9,7 @@ module.exports.create = create;
  * General API Endpoint
  * @type {String}
  */
-//const GEARAPIADDRESS = 'ga.netpie.io';
-const GEARAPIADDRESS = '127.0.0.1';
+const GEARAPIADDRESS = 'ga.netpie.io';
 const GEARAPIPORT = '8080';
 
 /**
@@ -178,6 +177,13 @@ function create(param) {
 microgear.prototype.gettoken = function(callback) {
     var that = this;
     if (this.debugmode) console.log('Check stored token');
+
+    var cachekey = getGearCacheValue('key');
+    if (cachekey && cachekey != this.gearkey) {
+        microgear.prototype.resettoken();
+        clearGearCache();
+    }
+    setGearCacheValue('key',this.gearkey);
 
     if (!this.accesstoken)
         this.accesstoken = getGearCacheValue('accesstoken');
