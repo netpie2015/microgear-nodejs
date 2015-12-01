@@ -187,7 +187,6 @@ microgear.prototype.gettoken = function(callback) {
         clearGearCache();
     }
     setGearCacheValue('key',this.gearkey);
-
     if (!this.accesstoken)
         this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
@@ -355,6 +354,7 @@ microgear.prototype.close = function(done) {
  * @param  {Function} callback Callback
  */
 microgear.prototype.brokerconnect = function(callback) {
+    var that = this;
     var hkey = this.accesstoken.secret+'&'+this.gearsecret;
     var mqttuser = this.gearkey+'%'+Math.floor(Date.now()/1000);
     var mqttpassword = crypto.createHmac('sha1', hkey).update(this.accesstoken.token+'%'+mqttuser).digest('base64');
@@ -393,7 +393,12 @@ microgear.prototype.brokerconnect = function(callback) {
         switch (err.toString()) {
             case 'Error: Connection refused: Bad username or password' : // code 4
                 // token may be nolonger valid, try to request a new one
+                microgear.prototype.emit('info','invalid token, requesting a new one');
+
                 clearGearCache();
+                that.requesttoken = null;
+                that.accesstoken = null;
+
                 self.client.end();
                 setTimeout(function() {
                     initiateconnection(function() {
@@ -402,7 +407,7 @@ microgear.prototype.brokerconnect = function(callback) {
                 }, ACCESSTOKENRETRYINTERVAL);
                 break;
             case 'Error: Connection refused: Not authorized' : // code 5
-                console.log(5);
+                microgear.prototype.emit('warning','microgear unauthorized');
                 break;
         }
 
@@ -424,7 +429,6 @@ microgear.prototype.brokerconnect = function(callback) {
                         microgear.prototype.emit('absent',{event:'abesent',gearkey:message.toString()});
                         break;
             }
-
         }
         else {
             microgear.prototype.emit('message',topic, message);
