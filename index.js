@@ -153,12 +153,15 @@ function clearGearCache(key) {
  */
 function create(param) {
     var mode;
+    var gkey = param.key?param.key:param.gearkey?param.gearkey:"";
+    var gsecret = param.secret?param.secret:param.gearsecret?param.gearsecret:"";
+    var glabel = param.label?param.label:param.gearlabel?param.gearlabel:"";
 
     if (!param) return;
     var scope = param.scope;
 
-    if (param.gearkey && param.gearsecret) {
-        var mg = new microgear(param.gearkey,param.gearsecret,param.label);
+    if (gkey && gsecret) {
+        var mg = new microgear(gkey, gsecret, glabel);
 
         mg.scope = param.scope;
 
