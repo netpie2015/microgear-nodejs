@@ -408,6 +408,13 @@ microgear.prototype.brokerconnect = function(callback) {
                 break;
             case 'Error: Connection refused: Not authorized' : // code 5
                 microgear.prototype.emit('warning','microgear unauthorized');
+
+                self.client.end();
+                setTimeout(function() {
+                    initiateconnection(function() {
+                        if (self.debugmode) console.log('auto reconnect');
+                    });
+                }, ACCESSTOKENRETRYINTERVAL);
                 break;
         }
 
