@@ -46,12 +46,11 @@ var appdir = require('path').dirname(topModule.filename);
  * @param  {String} gearsecret Gear secret
  * @return {[type]}            [description]
  */
-var microgear = function(gearkey,gearsecret,gearlabel) {
+var microgear = function(gearkey,gearsecret,gearalias) {
     this.debugmode = DEBUGMODE;
     this.gearkey = gearkey;
     this.gearsecret = gearsecret;
-    this.gearlabel = gearlabel?gearlabel.substring(0,16):null;
-    //this.gearlabel = 'f';
+    this.gearalias = gearalias?gearalias.substring(0,16):null;
     this.appid = null;
     this.gearname = null;
     this.accesstoken = null;
@@ -155,13 +154,13 @@ function create(param) {
     var mode;
     var gkey = param.key?param.key:param.gearkey?param.gearkey:"";
     var gsecret = param.secret?param.secret:param.gearsecret?param.gearsecret:"";
-    var glabel = param.label?param.label:param.gearlabel?param.gearlabel:"";
+    var galias = param.alias?param.alias:param.gearalias?param.gearalias:"";
 
     if (!param) return;
     var scope = param.scope;
 
     if (gkey && gsecret) {
-        var mg = new microgear(gkey, gsecret, glabel);
+        var mg = new microgear(gkey, gsecret, galias);
 
         mg.scope = param.scope;
 
@@ -252,7 +251,7 @@ microgear.prototype.gettoken = function(callback) {
             if (self.debugmode) {
                 console.log("Requesting a request token.");
             }
-            if (this.gearlabel) verifier = MGREV+this.gearlabel;
+            if (this.gearalias) verifier = MGREV+this.gearalias;
             else verifier = MGREV+'_'+require('hat')(28);
 
             var oauth = new OAuth.OAuth(
