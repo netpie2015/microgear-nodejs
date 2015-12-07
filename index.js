@@ -518,6 +518,7 @@ microgear.prototype.unsubscribe = function(topic,callback) {
 }
 
 /**
+ * Deprecated
  * Name this instance of microgear
  * @param  {String}   gearname Gear name
  * @param  {Function} callback Callback
@@ -529,6 +530,19 @@ microgear.prototype.setname = function (gearname, callback) {
         if (typeof(callback) == 'function') callback();
     });
 }
+
+/**
+ * Set alias on this instance
+ * @param  {String}   gearname Gear name
+ * @param  {Function} callback Callback
+ */
+microgear.prototype.setalias = function (newalias, callback) {
+    this.publish('/@setalias/'+newalias, "", {}, function() {
+       this.gearalias = newalias;
+       if (typeof(callback) == 'function') callback();
+    });
+}
+
 
 /**
  * Reset name of this instance
@@ -549,7 +563,7 @@ microgear.prototype.unsetname = function (callback) {
  * @param  {String}   message  Message
  * @param  {Object} param Publish Parameters
  */
-microgear.prototype.publish = function(topic, message, param) {
+microgear.prototype.publish = function(topic, message, param, callback) {
 	var options;
 
     switch (typeof(param)) {
@@ -560,7 +574,7 @@ microgear.prototype.publish = function(topic, message, param) {
         default        : options = {};   							
     }
     if (this.client.connected)
-        this.client.publish('/'+this.appid+topic, message, options);
+        this.client.publish('/'+this.appid+topic, message, options, callback);
     else
         microgear.prototype.emit('error','microgear is disconnected, cannot publish.');
 }
