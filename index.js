@@ -25,7 +25,7 @@ const TOKENCACHEFILENAME = 'microgear.cache';
 const MINTOKDELAYTIME = 100;
 const MAXTOKDELAYTIME = 30000;
 const DEBUGMODE = false;
-const ACCESSTOKENRETRYINTERVAL = 5000;
+const RETRYCONNECTIONINTERVAL = 5000;
 
 var self = null;
 var events = require('events');
@@ -343,9 +343,9 @@ microgear.prototype.connect = function(appid,arg1,arg2) {
  * Close connection
  * @param  {Function} done Callback
  */
-microgear.prototype.close = function(done) {
+microgear.prototype.disconnect = function(done) {
     this.client.end();
-    //this.emit('closed');
+    this.emit('disconnected');
 }
 
 /**
@@ -403,7 +403,7 @@ microgear.prototype.brokerconnect = function(callback) {
                     initiateconnection(function() {
                         if (self.debugmode) console.log('auto reconnect');
                     });
-                }, ACCESSTOKENRETRYINTERVAL);
+                }, RETRYCONNECTIONINTERVAL);
                 break;
             case 'Error: Connection refused: Not authorized' : // code 5
                 microgear.prototype.emit('warning','microgear unauthorized');
@@ -413,7 +413,7 @@ microgear.prototype.brokerconnect = function(callback) {
                     initiateconnection(function() {
                         if (self.debugmode) console.log('auto reconnect');
                     });
-                }, ACCESSTOKENRETRYINTERVAL);
+                }, RETRYCONNECTIONINTERVAL);
                 break;
         }
 
@@ -443,7 +443,7 @@ microgear.prototype.brokerconnect = function(callback) {
 
     this.client.on('close', function() {
         if (self.debugmode) console.log('client close');
-        this.emit('closed');
+        this.emit('disconnected');
     });
 
     this.client.on('connect', function(pack) {
