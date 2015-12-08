@@ -9,6 +9,7 @@ module.exports.create = create;
  * General API Endpoint
  * @type {String}
  */
+
 const GEARAPIADDRESS = 'ga.netpie.io';
 const GEARAPIPORT = '8080';
 
@@ -16,7 +17,7 @@ const GEARAPIPORT = '8080';
  * Microgear API version
  * @type {String}
  */
-const MGREV = 'NJS1a;';
+const MGREV = 'NJS1a';
 
 /**
  * Constants
@@ -247,12 +248,13 @@ microgear.prototype.gettoken = function(callback) {
             });
         }
         else {
-            var verifier;
             if (self.debugmode) {
                 console.log("Requesting a request token.");
             }
-            if (this.gearalias) verifier = MGREV+this.gearalias;
-            else verifier = MGREV+'_'+require('hat')(28);
+ 
+            var verifier;
+            if (this.gearalias) verifier = this.gearalias;
+            else verifier = MGREV;
 
             var oauth = new OAuth.OAuth(
                 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken',
@@ -260,7 +262,7 @@ microgear.prototype.gettoken = function(callback) {
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
-                'scope='+this.scope+'&appid='+this.appid+'&verifier='+verifier,
+                'scope='+this.scope+'&appid='+this.appid+'&mgrev='+MGREV+'&verifier='+verifier,
                 'HMAC-SHA1'
             );
 
@@ -564,14 +566,14 @@ microgear.prototype.unsetname = function (callback) {
  * @param  {Object} param Publish Parameters
  */
 microgear.prototype.publish = function(topic, message, param, callback) {
-	var options;
+    var options;
 
     switch (typeof(param)) {
         case 'object'  : options = param;
                          break;
         case 'boolean' : options = {retain : param};
                          break;
-        default        : options = {};   							
+        default        : options = {};
     }
     if (this.client.connected)
         this.client.publish('/'+this.appid+topic, message, options, callback);
