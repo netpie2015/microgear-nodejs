@@ -12,18 +12,18 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
-const APPKEY    = <APPKEY>;
-const APPSECRET = <APPSECRET>;
+const KEY    = <APPKEY>;
+const SECRET = <APPSECRET>;
 const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
-    gearkey : APPKEY,
-    gearsecret : APPSECRET
+    key : KEY,
+    secret : SECRET
 });
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setname("mygear");
+    microgear.setalias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
@@ -72,14 +72,14 @@ var microgear = MicroGear.create({
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.setname (*gearname*)**
-microgear สามารถตั้งชื่อตัวเองได้ ซึ่งสามารถใช้เป็นชื่อเรียกในการใช้ฟังก์ชั่น chat()
+**void microgear.setalias (*gearalias*)**
+microgear สามารถตั้งนามแฝงของตัวเองได้ ซึ่งสามารถใช้เป็นชื่อให้คนอื่นเรียกในการใช้ฟังก์ชั่น chat() และชื่อที่ตั้งในโค้ด จะไปปรากฎบนหน้าจัดการ key บนเว็บ netpie.io อย่างอัตโนมัติ
 
 **arguments**
-* *gearname* `string` - ชื่อของ microgear นี้   
+* *gearalias* `string` - ชื่อของ microgear นี้   
 
 ```js
-microgear.setname("plant");
+microgear.setalias("plant");
 ```
 ---
 **void microgear.chat (*gearname*, *message*)**
