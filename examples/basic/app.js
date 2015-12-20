@@ -2,18 +2,18 @@
 
 var MicroGear = require('microgear');
 
-const APPKEY    = <APPKEY>;
-const APPSECRET = <APPSECRET>;
+const KEY    = <APPKEY>;
+const SECRET = <APPSECRET>;
 const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
-    gearkey : APPKEY,
-    gearsecret : APPSECRET
+    key : APPKEY,
+    secret : APPSECRET
 });
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setname("mygear");
+    microgear.setalias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
