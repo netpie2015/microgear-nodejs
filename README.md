@@ -1,6 +1,6 @@
 # microgear-nodejs
 
-microgear-nodejs คือ client library ภาษา Node.js ที่ทำหน้าที่เป็นตัวกลางในการเชื่อมโยง application code หรือ hardware เข้ากับบริการของ netpie platform เพื่อการพัฒนา IOT application รายละเอียดเกี่ยวกับ netpie platform สามารถศึกษาได้จาก http://netpie.io
+microgear-nodejs คือ client library ภาษา Node.js ที่ทำหน้าที่เป็นตัวกลางในการเชื่อมโยง application code หรือ hardware เข้ากับบริการของ netpie platform เพื่อการพัฒนา IOT application รายละเอียดเกี่ยวกับ netpie platform สามารถศึกษาได้จาก https://netpie.io
 
 ## การติดตั้ง
 
@@ -12,18 +12,18 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
-const APPKEY    = <APPKEY>;
-const APPSECRET = <APPSECRET>;
+const KEY    = <APPKEY>;
+const SECRET = <APPSECRET>;
 const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
-    gearkey : APPKEY,
-    gearsecret : APPSECRET
+    key : KEY,
+    secret : SECRET
 });
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setname("mygear");
+    microgear.setalias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
@@ -49,7 +49,7 @@ microgear.connect(APPID);
   * *scope* `string` - เป็นการระบุขอบเขตของสิทธิ์ที่ต้องการ
 
 **scope**
-เป็นการต่อกันของ string ในรูปแบบต่อไปนี้ คั่นด้วยเครื่องหมาย comma
+เป็นตัวเลือกที่ไม่จำเป็นต้องระบุ ใช้เฉพาะในกรณีที่ microgear ต้องการสิทธิ์เป็นพิเศษ เพิ่มเติมจาก default scope ซึ่งอาจจะต้องรอการอนุมัติจากเจ้าของ appid เป็นครั้งๆไป การระบุ scope จะเป็นการต่อกันของ string ในรูปแบบต่อไปนี้ คั่นด้วยเครื่องหมาย comma
   * [r][w]:&lt;/topic/path&gt; - r และ w คือสิทธิ์ในการ publish ละ subscribe topic ดังที่ระบุ เช่น rw:/outdoor/temp
   *  name:&lt;gearname&gt; - คือสิทธิ์ในการตั้งชื่อตัวเองว่า &lt;gearname&gt;
   *  chat:&lt;gearname&gt; - คือสิทธ์ในการ chat กับ &lt;gearname&gt;
@@ -72,14 +72,14 @@ var microgear = MicroGear.create({
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.setname (*gearname*)**
-microgear สามารถตั้งชื่อตัวเองได้ ซึ่งสามารถใช้เป็นชื่อเรียกในการใช้ฟังก์ชั่น chat()
+**void microgear.setalias (*gearalias*)**
+microgear สามารถตั้งนามแฝงของตัวเองได้ ซึ่งสามารถใช้เป็นชื่อให้คนอื่นเรียกในการใช้ฟังก์ชั่น chat() และชื่อที่ตั้งในโค้ด จะไปปรากฎบนหน้าจัดการ key บนเว็บ netpie.io อย่างอัตโนมัติ
 
 **arguments**
-* *gearname* `string` - ชื่อของ microgear นี้   
+* *gearalias* `string` - ชื่อของ microgear นี้   
 
 ```js
-microgear.setname("plant");
+microgear.setalias("plant");
 ```
 ---
 **void microgear.chat (*gearname*, *message*)**
@@ -92,19 +92,21 @@ microgear.setname("plant");
 microgear.chat("valve","I need water");
 ```
 ---
-**void microgear.publish (*topic*, *message*)**
+**void microgear.publish (*topic*, *message*, [retained])**
 ในการณีที่ต้องการส่งข้อความแบบไม่เจาะจงผู้รับ สามารถใช้ฟังชั่น publish ไปยัง topic ที่กำหนดได้ ซึ่งจะมีแต่ microgear ที่ subscribe topoic นี้เท่านั้น ที่จะได้รับข้อความ
 
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
 * *message* `string` - ข้อความ
+* *retained* `boolean` - ให้ retain ข้อความไว้หรือไม่ default เป็น `false`
 
 ```js
 microgear.publish("/outdoor/temp","28.5");
+microgear.publish("/outdoor/humid","56",true);
 ```
 ---
 **void microgear.subscribe (*topic*)**
-microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้
+microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้ และหาก topic นั้นเคยมีการ retain ข้อความไว้ microgear จะได้รับข้อความนั้นทุกครั้งที่ subscribe topic
 
 **arguments**
 * *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
@@ -124,7 +126,7 @@ microgear.unsubscribe("/outdoor/temp");
 ```
 ---
 **void microgear.resettoken (callback)**
-ออนไลน์ส่งคำสั่ง revoke token และลบ token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่ในการเชื่อมต่อครั้งต่อไป
+ส่งคำสั่ง revoke token ไปยัง netpie และลบ token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่ในการเชื่อมต่อครั้งต่อไป
 
 **arguments**
 * *callback* `function` - callback function ที่จะถูกเรียกเมื่อการ reset token เสร็จสิ้น
@@ -140,7 +142,6 @@ microgear.resettoken(function(result){
     microgear.connect(APPID);
 });
 ```
-
 
 ---
 ## Events
@@ -170,19 +171,27 @@ microgear.on("closed", function() {
 });
 ```
 
-**Event: 'rejected'**
-เป็น event ที่เกิดเมื่อ microgear เชื่อมต่อไม่สำเร็จ เนื่องจาก token ถูกปฏิเสธ อาจเป็นเพราะ token ถูก revoke หรือ disable
-```
-microgear.on("rejected", function(info) {
-	console.log("Connection rejected: "+info);
-});
-```
-
 **Event: 'error'**
 เป็น event ที่เกิดมี error ขึ้นภายใน microgear
 ```
 microgear.on("error", function(err) {
 	console.log("Error: "+err);
+});
+```
+
+**Event: 'warning'**
+เป็น event ที่เกิดมีเหตุการณ์บางอย่างเกิดขึ้นขึ้น และมีการเตือนให้ทราบ
+```
+microgear.on("warning", function(msg) {
+	console.log("Connection rejected: "+msg);
+});
+```
+
+**Event: 'info'**
+เป็น event ที่เกิดมีเหตุการณ์บางอย่างเกิดขึ้นขึ้นภายใน microgear
+```
+microgear.on("info", function(msg) {
+	console.log("Connection rejected: "+msg);
 });
 ```
 
