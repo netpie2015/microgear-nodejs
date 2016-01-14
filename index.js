@@ -190,11 +190,39 @@ microgear.prototype.gettoken = function(callback) {
     if (!this.accesstoken)
         this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
-        var endpoint = require('url').parse(this.accesstoken.endpoint);
 
-        this.gearexaddress = endpoint.hostname;
-        this.gearexport = endpoint.port;
-        if (typeof(callback)=='function') callback(3);
+        if (this.accesstoken.endpoint != "") {
+            var endpoint = require('url').parse(this.accesstoken.endpoint);
+            this.gearexaddress = endpoint.hostname;
+            this.gearexport = endpoint.port;
+            if (typeof(callback)=='function') callback(3);
+        }
+        else {
+            var opt = {
+                host: GEARAPIADDRESS,
+                path: '/api/endpoint/'+this.gearkey,
+                port: GEARAPIPORT,
+                method: 'GET'
+            };
+            var rq = http.request(opt, function(res){
+                var buff = '';
+                res.on('data', function(chunk){
+                    buff += chunk;
+                });             
+                res.on('end', function(){
+                    if (buff) {
+                        that.accesstoken.endpoint = buff;
+                        setGearCacheValue('accesstoken',that.accesstoken);
+                        if (typeof(callback)=='function') callback(3);
+                    }
+                    if (typeof(callback)=='function') callback(2);
+                });
+            });
+            rq.on('error',function(e) {
+                if (typeof(callback)=='function') callback(2);
+            });
+            rq.end();
+        }
     }
     else {
         if (!this.requesttoken)
@@ -435,6 +463,13 @@ microgear.prototype.brokerconnect = function(callback) {
                         break;
                 case 'absent' : 
                         microgear.prototype.emit('absent',{event:'abesent',gearkey:message.toString()});
+                        break;
+                case 'resetendpoint' :
+                        if (self.accesstoken && self.accesstoken.endpoint) {
+                            self.accesstoken.endpoint = "";
+                            setGearCacheValue('accesstoken',self.accesstoken);
+                            microgear.prototype.emit('info','endpoint reset');
+                        }
                         break;
             }
         }
