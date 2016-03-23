@@ -1,23 +1,24 @@
 /**
  * NetPIE microgear Library for Node.js
  * http://netpie.io
+ * by Chavee 
  */
 
 module.exports.create = create;
 
 /**
  * General API Endpoint
- * @type {String}
  */
-
 const GEARAPIADDRESS = 'ga.netpie.io';
 const GEARAPIPORT = '8080';
+const GEARAPISECUREPORT = '8081';
+const GBPORT = '1883';
+const GBSPORT = '8883';
 
 /**
  * Microgear API version
- * @type {String}
  */
-const MGREV = 'NJS1a';
+const MGREV = 'NJS1b';
 
 /**
  * Constants
@@ -30,11 +31,11 @@ const RETRYCONNECTIONINTERVAL = 5000;
 
 var self = null;
 var events = require('events');
-var http = require('http');
 var mqtt = require('mqtt');
 var OAuth = require('oauth');
 var crypto = require('crypto');
 var oauth;
+var httpclient = null;
 var topModule = module;
 while(topModule.parent) {
   topModule = topModule.parent;
@@ -48,6 +49,7 @@ var appdir = require('path').dirname(topModule.filename);
  * @return {[type]}            [description]
  */
 var microgear = function(gearkey,gearsecret,gearalias) {
+    this.securemode = false;
     this.debugmode = DEBUGMODE;
     this.gearkey = gearkey;
     this.gearsecret = gearsecret;
@@ -64,7 +66,6 @@ var microgear = function(gearkey,gearsecret,gearalias) {
     this.options = {};
 }
 microgear.prototype = new events.EventEmitter;
-
 
 function jsonparse(jsontext) {
     var jsonobj;
@@ -179,8 +180,12 @@ function create(param) {
  */
 microgear.prototype.gettoken = function(callback) {
     var that = this;
-    if (this.debugmode) console.log('Check stored token');
 
+    if (this.securemode) httpclient = require('https');
+    else httpclient = require('http');
+
+    if (this.debugmode) console.log('Check stored token');
+    
     var cachekey = getGearCacheValue('key');
     if (cachekey && cachekey != this.gearkey) {
         microgear.prototype.resettoken();
@@ -198,13 +203,25 @@ microgear.prototype.gettoken = function(callback) {
             if (typeof(callback)=='function') callback(3);
         }
         else {
-            var opt = {
-                host: GEARAPIADDRESS,
-                path: '/api/endpoint/'+this.gearkey,
-                port: GEARAPIPORT,
-                method: 'GET'
-            };
-            var rq = http.request(opt, function(res){
+            var opt;            
+            if (this.securemode) {
+                opt = {
+                    host: GEARAPIADDRESS,
+                    path: '/api/endpoint/'+this.gearkey,
+                    port: GEARAPISECUREPORT,
+                    method: 'GET'
+                };
+            }
+            else {
+                opt = {
+                    host: GEARAPIADDRESS,
+                    path: '/api/endpoint/'+this.gearkey,
+                    port: GEARAPIPORT,
+                    method: 'GET'
+                };
+            }
+
+            var rq = httpclient.request(opt, function(res){
                 var buff = '';
                 res.on('data', function(chunk){
                     buff += chunk;
@@ -236,9 +253,13 @@ microgear.prototype.gettoken = function(callback) {
                 console.log("Requesting an access token.");
             }
 
+            var oauthurl;
+            if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/atoken';
+            else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken';
+
             var oauth = new OAuth.OAuth(
                 null,
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken',
+                oauthurl,
                 this.gearkey,
                 this.gearsecret,
                 '1.0',
@@ -284,8 +305,14 @@ microgear.prototype.gettoken = function(callback) {
             if (this.gearalias) verifier = this.gearalias;
             else verifier = MGREV;
 
+            if (!this.scope) this.scope = '';
+
+            var oauthurl;
+            if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/rtoken';
+            else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';            
+
             var oauth = new OAuth.OAuth(
-                'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken',
+                oauthurl,
                 null,
                 this.gearkey,
                 this.gearsecret,
@@ -347,14 +374,12 @@ process.on('uncaughtException', function(err) {
 });
 
 /**
- * Initiate NetPIE connection
+ * Do NetPIE connection
  * @param  {String}   appid appid
  * @param  {Function} done  Callback
  */
-microgear.prototype.connect = function(appid,arg1,arg2) {
+microgear.prototype.doconnect = function(arg1,arg2) {
     var done = null;
-    this.appid = appid;
-
     if (typeof(arg1)=='function') done = arg1;
     else {
         if (typeof(arg1)=='object') {
@@ -365,8 +390,29 @@ microgear.prototype.connect = function(appid,arg1,arg2) {
         }
         if (typeof(arg2)=='function') done = arg2;
     }
-
     initiateconnection(done);
+};
+
+/**
+ * Initiate NetPIE connection
+ * @param  {String}   appid appid
+ * @param  {Function} done  Callback
+ */
+microgear.prototype.connect = function(appid,arg1,arg2) {
+    this.appid = appid;
+    this.securemode = false;
+    microgear.prototype.doconnect(arg1,arg2);
+}
+
+/**
+ * Initiate NetPIE secure connection
+ * @param  {String}   appid appid
+ * @param  {Function} done  Callback
+ */
+microgear.prototype.secureconnect = function(appid,arg1,arg2) {
+    this.appid = appid;
+    this.securemode = true;
+    microgear.prototype.doconnect(arg1,arg2);
 }
 
 /**
@@ -396,17 +442,33 @@ microgear.prototype.brokerconnect = function(callback) {
 
     this.clientid = mqttclientid;
 
-    this.client = mqtt.connect(
-        'mqtt://'+this.gearexaddress,
-        {   port: this.gearexport,
-            username: mqttuser,
-            password: mqttpassword,
-            clientId: mqttclientid,
-            protocolVersion: 3,
-            keepalive: 10,
-            will: this.options?this.options.will:{}
-        }
+    if (this.securemode) {
+        this.client = mqtt.connect(
+            'mqtts://'+this.gearexaddress,
+            {   port: GBSPORT,
+                username: mqttuser,
+                password: mqttpassword,
+                clientId: mqttclientid,
+                protocolVersion: 3,
+                keepalive: 10,
+                will: this.options?this.options.will:{}
+            }
+        );
+    }
+    else {
+        this.client = mqtt.connect(
+            'mqtt://'+this.gearexaddress,
+            {   port: GBPORT,
+                username: mqttuser,
+                password: mqttpassword,
+                clientId: mqttclientid,
+                protocolVersion: 3,
+                keepalive: 10,
+                will: this.options?this.options.will:{}
+            }
     );
+
+    }
 
     if (this.client) {
         /* subscribe for control messages */
@@ -690,14 +752,27 @@ microgear.prototype.writepostbox = function(box,data) {
 microgear.prototype.resettoken = function(callback) {
     this.accesstoken = getGearCacheValue('accesstoken');
     if (this.accesstoken) {
+        var opt;
         var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
-        var opt = {
-            host: GEARAPIADDRESS,
-            path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
-            port: GEARAPIPORT,
-            method: 'GET'
-        };
-        var rq = http.request(opt, function(res){
+
+        if (this.securemode) {
+            opt = {
+                host: GEARAPIADDRESS,
+                path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
+                port: GEARAPISECUREPORT,
+                method: 'GET'
+            };
+        }
+        else {
+            opt = {
+                host: GEARAPIADDRESS,
+                path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
+                port: GEARAPIPORT,
+                method: 'GET'
+            };
+        }
+
+        var rq = httpclient.request(opt, function(res){
             var result = '';
             res.on('data', function(chunk){
                 result += chunk;
@@ -720,3 +795,9 @@ microgear.prototype.resettoken = function(callback) {
         if (typeof(callback)=='function') callback(null);
     }
 }
+
+microgear.prototype.secureConnect = microgear.prototype.secureconnect;
+microgear.prototype.setName = microgear.prototype.setname;
+microgear.prototype.unsetName = microgear.prototype.unsetname;
+microgear.prototype.setAlias = microgear.prototype.setalias;
+microgear.prototype.resetToken = microgear.prototype.resettoken;
