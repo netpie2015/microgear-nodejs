@@ -12,9 +12,9 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
+const APPID     = <APPID>;
 const KEY    = <APPKEY>;
 const SECRET = <APPSECRET>;
-const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
     key : KEY,
@@ -23,7 +23,7 @@ var microgear = MicroGear.create({
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setalias("mygear");
+    microgear.setAlias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
@@ -44,22 +44,15 @@ microgear.connect(APPID);
 
 **arguments**
 * *config* เป็น json object ที่ที่มี attribute ดังนี้
-  * *gearkey* `string` - เป็น key สำหรับ gear ที่จะรัน ใช้ในการอ้างอิงตัวตนของ gear
-  * *gearsecret* `string` - เป็น secret ของ key ซึ่งจะใช้ประกอบในกระบวนการยืนยันตัวตน
-  * *scope* `string` - เป็นการระบุขอบเขตของสิทธิ์ที่ต้องการ
-
-**scope**
-เป็นตัวเลือกที่ไม่จำเป็นต้องระบุ ใช้เฉพาะในกรณีที่ microgear ต้องการสิทธิ์เป็นพิเศษ เพิ่มเติมจาก default scope ซึ่งอาจจะต้องรอการอนุมัติจากเจ้าของ appid เป็นครั้งๆไป การระบุ scope จะเป็นการต่อกันของ string ในรูปแบบต่อไปนี้ คั่นด้วยเครื่องหมาย comma
-  * [r][w]:&lt;/topic/path&gt; - r และ w คือสิทธิ์ในการ publish ละ subscribe topic ดังที่ระบุ เช่น rw:/outdoor/temp
-  *  name:&lt;gearname&gt; - คือสิทธิ์ในการตั้งชื่อตัวเองว่า &lt;gearname&gt;
-  *  chat:&lt;gearname&gt; - คือสิทธ์ในการ chat กับ &lt;gearname&gt;
-ในขั้นตอนของการสร้าง key บนเว็บ netpie.io นักพัฒนาสามารถกำหนดสิทธิ์ขั้นพื้นฐานให้แต่ละ key ได้อยู่แล้ว หากการ create microgear อยู่ภายใต้ขอบเขตของสิทธิ์ที่มี token จะถูกจ่ายอัตโนมัติ และ microgear จะสามารถเชื่อมต่อ netpie platform ได้ทันที แต่หาก scope ที่ร้องขอนั้นมากเกินกว่าสิทธิ์ที่กำหนดไว้ นักพัฒนาจะได้รับ notification ให้พิจารณาอนุมัติ microgear ที่เข้ามาขอเชื่อมต่อ ข้อควรระวัง หาก microgear มีการกระทำการเกินกว่าสิทธิ์ที่ได้รับไป เช่น พยายามจะ publish ไปยัง topic ที่ตัวเองไม่มีสิทธิ์ netpie จะตัดการเชื่อมต่อของ microgear โดยอัตโนมัติ ในกรณีที่ใช้ APPKEY เป็น gearkey เราสามารถละเว้น attribute นี้ได้ เพราะ APPKEY จะได้สิทธิ์ทุกอย่างในฐานะของเจ้าของ app โดย default อยู่แล้ว 
+  * *key* `string` - เป็น key สำหรับ gear ที่จะรัน ใช้ในการอ้างอิงตัวตนของ gear
+  * *secret* `string` - เป็น secret ของ key ซึ่งจะใช้ประกอบในกระบวนการยืนยันตัวตน
+  * *alias* `string` - เป็นการตั้งชื่อเรียก จะใส่ที่นี่หรือ setAlias() ทีหลังก็ได้
 
 ```js
 var microgear = MicroGear.create({
     gearkey : "sXfqDcXHzbFXiLk",
     gearsecret : "DNonzg2ivwS8ceksykGntrfQjxbL98",
-    scope : "r:/outdoor/temp,w:/outdoor/valve,name:logger,chat:plant"
+    alias : "mygear"
 });
 ```
 ---
@@ -72,7 +65,16 @@ var microgear = MicroGear.create({
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.setalias (*gearalias*)**
+**void microgear.secureConnect (*appid*, *callback*)**
+เชื่อมต่อไปที่ NETPIE แบบมีการเข้ารหัส ไม่สามารถดักฟังได้ แนะนำให้ใช้ฟังก์ชั่นนี้โดยเฉพาะเวลานำไฟล์ HTML ไปวางบน webserver ที่โหลดผ่านโปรโตคอล HTTPS ไม่เช่นนั้น browser อาจจะแสดงข้อความเตือนเกี่ยวกับ security หรืออาจจะเชื่อมต่อไม่ได้เลย
+
+**arguments**
+* *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ 
+```js
+microgear.secureConnect("happyfarm");
+```
+---
+**void microgear.setAlias (*gearalias*)**
 microgear สามารถตั้งนามแฝงของตัวเองได้ ซึ่งสามารถใช้เป็นชื่อให้คนอื่นเรียกในการใช้ฟังก์ชั่น chat() และชื่อที่ตั้งในโค้ด จะไปปรากฎบนหน้าจัดการ key บนเว็บ netpie.io อย่างอัตโนมัติ
 
 **arguments**
