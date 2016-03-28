@@ -65,15 +65,6 @@ var microgear = MicroGear.create({
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.secureConnect (*appid*, *callback*)**
-เชื่อมต่อไปที่ NETPIE แบบมีการเข้ารหัส ไม่สามารถดักฟังได้ แนะนำให้ใช้ฟังก์ชั่นนี้โดยเฉพาะเวลานำไฟล์ HTML ไปวางบน webserver ที่โหลดผ่านโปรโตคอล HTTPS ไม่เช่นนั้น browser อาจจะแสดงข้อความเตือนเกี่ยวกับ security หรืออาจจะเชื่อมต่อไม่ได้เลย
-
-**arguments**
-* *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ 
-```js
-microgear.secureConnect("happyfarm");
-```
----
 **void microgear.setAlias (*gearalias*)**
 microgear สามารถตั้งนามแฝงของตัวเองได้ ซึ่งสามารถใช้เป็นชื่อให้คนอื่นเรียกในการใช้ฟังก์ชั่น chat() และชื่อที่ตั้งในโค้ด จะไปปรากฎบนหน้าจัดการ key บนเว็บ netpie.io อย่างอัตโนมัติ
 
