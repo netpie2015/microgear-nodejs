@@ -7,8 +7,8 @@ const SECRET = <APPSECRET>;
 const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
-    key : APPKEY,
-    secret : APPSECRET
+    key : KEY,
+    secret : SECRET
 });
 
 microgear.on('connected', function() {
