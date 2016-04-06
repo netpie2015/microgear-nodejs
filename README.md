@@ -23,7 +23,7 @@ var microgear = MicroGear.create({
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setalias("mygear");
+    microgear.setAlias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
@@ -48,21 +48,13 @@ microgear.connect(APPID);
 * *config* is a json object with the following attributes:
   * *gearkey* `string` - is used as a microgear identity.
   * *gearsecret* `string` comes in a pair with gearkey. The secret is used for authentication and integrity. 
-  * *scope* `string` - specifies the right.  
-
-**scope** is an optional field. This can be specified when the microgear needs additional rights beyond default scope. If the scope is specified, it may need an approval from the Application ID's owner for each request. The scope format is the concatenation of strings in the following forms, separated with commas:
-
-  * [r][w]:&lt;/topic/path&gt; - r and w is the right to publish and subscribe topic as specified such as rw:/outdoor/temp
-  *  name:&lt;gearname&gt; - is the right to name the &lt;gearname&gt;
-  *  chat:&lt;gearname&gt; - is the right to chat with &lt;gearname&gt;
-In the key generation process on the web netpie.io, the developer can specify basic rights to each key. If the creation of microgear is within right scope, a token will be automatically issued, and the microgear can be connected to NETPIE immediately. However, if the requested scope is beyond the specified right, the developer will recieve a notification to approve a microgear's connection. Note that if the microgear has operations beyond its right (e.g., pulishing to the topic that it does not has the right to do so), NETPIE will automatically disconnect the microgear. In case that APPKEY is used as a gearkey, the developer can ignore this attribute since by default the APPKEY will gain all rights as the ownwer of the app.
- 
+  * *alias* `string` - specifies the device alias.  
 
 ```js
 var microgear = MicroGear.create({
-    gearkey : "sXfqDcXHzbFXiLk",
-    gearsecret : "DNonzg2ivwS8ceksykGntrfQjxbL98",
-    scope : "r:/outdoor/temp,w:/outdoor/valve,name:logger,chat:plant"
+    key : "sXfqDcXHzbFXiLk",
+    secret : "DNonzg2ivwS8ceksykGntrfQjxbL98",
+    alias : "myplant"
 });
 ```
 ---
@@ -75,14 +67,14 @@ var microgear = MicroGear.create({
 microgear.connect("happyfarm");
 ```
 ---
-**void microgear.setalias (*gearalias*)**
+**void microgear.setAlias (*gearalias*)**
 microgear can set its own alias, which to be used for others make a function call chat(). The alias will appear on the key management portal of netpie.io .
 
 **arguments**
-* *gearalias* `string` - name of this microgear.   
+* *alias* `string` - name of this microgear.   
 
 ```js
-microgear.setalias("plant");
+microgear.setAlias("plant");
 ```
 ---
 **void microgear.chat (*gearname*, *message*)**
@@ -128,20 +120,20 @@ microgear.subscribe("/outdoor/temp");
 microgear.unsubscribe("/outdoor/temp");
 ```
 ---
-**void microgear.resettoken (callback)**
+**void microgear.resetToken (callback)**
 send a revoke token control message to NETPIE and delete the token from cache. As a result, the microgear will need to request a new token for the next connection.
 
 **arguments**
 * *callback* `function` - this function will be called when the token reset is finished.
 
 ```js
-microgear.resettoken(function(result){
+microgear.resetToken(function(result){
 });
 ```
 
-Since the function resettoken() is asynchronous, to connect applicatin after token reset,  the code should be as follows.
+Since the function resetToken() is asynchronous, to connect applicatin after token reset,  the code should be as follows.
 ```js
-microgear.resettoken(function(result){
+microgear.resetToken(function(result){
     microgear.connect(APPID);
 });
 ```
