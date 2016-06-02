@@ -42,7 +42,7 @@ microgear.connect(APPID);
 
 ## Library Usage
 
-**microgear.create (*gearkey*, *gearsecret*, *scope*)**
+**Microgear.create (*gearkey*, *gearsecret*, *scope*)**
 
 **arguments** 
 * *config* is a json object with the following attributes:
