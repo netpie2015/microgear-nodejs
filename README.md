@@ -137,6 +137,25 @@ microgear.resetToken(function(result){
     microgear.connect(APPID);
 });
 ```
+---
+
+**void microgear.setCachePath (path)**
+By default, a microgear token cache file is stored in the same directory as the application within a file name of this format : 'microgear-<KEY>.cache'. This function is for setting a path of microgear token cache file. It will be useful when you want to run multiple microgears of the same device key on the same location.
+
+**arguments**
+* *path* `string` - file path
+
+```js
+microgear.setCachePath(function('microgear-g1.cache'){
+});
+```
+
+Since the function resetToken() is asynchronous, to connect applicatin after token reset,  the code should be as follows.
+```js
+microgear.resetToken(function(result){
+    microgear.connect(APPID);
+});
+```
 
 ---
 ## Events
