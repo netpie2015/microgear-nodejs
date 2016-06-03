@@ -22,10 +22,9 @@ const MGREV = 'NJS1b';
 /**
  * Constants
  */
-const TOKENCACHEFILENAME = 'microgear.cache';
+const DEBUGMODE = false;
 const MINTOKDELAYTIME = 100;
 const MAXTOKDELAYTIME = 30000;
-const DEBUGMODE = false;
 const RETRYCONNECTIONINTERVAL = 5000;
 
 var OAuth = require('oauth');
@@ -64,6 +63,7 @@ function create(param) {
         this.subscriptions = [];
         this.options = {};
         this.toktime = MINTOKDELAYTIME;
+        this.microgearcache = 'microgear-'+this.gearkey+'.cache';
     }
 
     microgear.prototype = new events.EventEmitter;
@@ -96,12 +96,20 @@ function create(param) {
     };
 
     /**
+     * Override cache file path
+     * @param  {string} path cache file path
+     */
+    microgear.prototype.setCachePath = function(path) {
+        this.microgearcache = path;
+    }
+
+    /**
      * Cache getter
      * @param  {string} key key name
      * @return {String}     value
      */
     microgear.prototype.getGearCacheValue = function(key) {
-        var c = this.cache.getItem(TOKENCACHEFILENAME);
+        var c = this.cache.getItem(this.microgearcache);
         if (c == null) return null;
         else return c[key];
     }
@@ -112,10 +120,10 @@ function create(param) {
      * @param {String} value value
      */
     microgear.prototype.setGearCacheValue = function(key,value) {
-        var c = this.cache.getItem(TOKENCACHEFILENAME);
+        var c = this.cache.getItem(this.microgearcache);
         if (c == null) c = {};
         c[key] = value;
-        this.cache.setItem(TOKENCACHEFILENAME,c);
+        this.cache.setItem(this.microgearcache,c);
     }
 
     /**
@@ -123,15 +131,15 @@ function create(param) {
      * @param {String} key   key name
      */
     microgear.prototype.clearGearCache = function(key) {
-        var c = this.cache.getItem(TOKENCACHEFILENAME);
+        var c = this.cache.getItem(this.microgearcache);
         if (c == null) return;
         else {
             if (key) {
                 c[key] = null;
-                this.cache.setItem(TOKENCACHEFILENAME,c);
+                this.cache.setItem(this.microgearcache,c);
             }
             else {
-                this.cache.setItem(TOKENCACHEFILENAME,null);
+                this.cache.setItem(this.microgearcache,null);
             }
         }
     }
@@ -757,10 +765,9 @@ function create(param) {
     microgear.prototype.setAlias = microgear.prototype.setalias;
     microgear.prototype.resetToken = microgear.prototype.resettoken;
 
-    var mode;
-    var gkey = param.key?param.key:param.gearkey?param.gearkey:"";
-    var gsecret = param.secret?param.secret:param.gearsecret?param.gearsecret:"";
-    var galias = param.alias?param.alias:param.gearalias?param.gearalias:"";
+    var gkey = param.key || param.gearkey || "";
+    var gsecret = param.secret || param.gearsecret || "";
+    var galias = param.alias || param.gearalias || "";
 
     if (!param) return;
     var scope = param.scope;
