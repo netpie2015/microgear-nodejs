@@ -12,9 +12,9 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
-const APPID     = <APPID>;
-const KEY    = <APPKEY>;
-const SECRET = <APPSECRET>;
+const APPID  = <APPID>;
+const KEY    = <KEY>;
+const SECRET = <SECRET>;
 
 var microgear = MicroGear.create({
     key : KEY,
@@ -60,7 +60,7 @@ var microgear = MicroGear.create({
 **void microgear.connect (*appid*, *callback*)**
 
 **arguments**
-* *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ 
+* *appid* `string` - คือกลุ่มของ application ที่ microgear จะทำการเชื่อมต่อ
 ```js
 microgear.connect("happyfarm");
 ```
@@ -72,13 +72,13 @@ microgear สามารถตั้งนามแฝงของตัวเ�
 * *gearalias* `string` - ชื่อของ microgear นี้   
 
 ```js
-microgear.setalias("plant");
+microgear.setAlias("plant");
 ```
 ---
 **void microgear.chat (*gearname*, *message*)**
 
 **arguments**
-* *gearname* `string` - ชื่อของ microgear ที่ต้องการจะส่งข้อความไปถึง 
+* *gearname* `string` - ชื่อของ microgear ที่ต้องการจะส่งข้อความไปถึง
 * *message* `string` - ข้อความ
 
 ```js
@@ -89,7 +89,7 @@ microgear.chat("valve","I need water");
 ในการณีที่ต้องการส่งข้อความแบบไม่เจาะจงผู้รับ สามารถใช้ฟังชั่น publish ไปยัง topic ที่กำหนดได้ ซึ่งจะมีแต่ microgear ที่ subscribe topoic นี้เท่านั้น ที่จะได้รับข้อความ
 
 **arguments**
-* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
+* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง
 * *message* `string` - ข้อความ
 * *retained* `boolean` - ให้ retain ข้อความไว้หรือไม่ default เป็น `false`
 
@@ -102,7 +102,7 @@ microgear.publish("/outdoor/humid","56",true);
 microgear อาจจะมีความสนใจใน topic ใดเป็นการเฉพาะ เราสามารถใช้ฟังก์ชั่น subscribe() ในการบอกรับ message ของ topic นั้นได้ และหาก topic นั้นเคยมีการ retain ข้อความไว้ microgear จะได้รับข้อความนั้นทุกครั้งที่ subscribe topic
 
 **arguments**
-* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
+* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง
 
 ```js
 microgear.subscribe("/outdoor/temp");
@@ -112,26 +112,41 @@ microgear.subscribe("/outdoor/temp");
 ยกเลิกการ subscribe
 
 **arguments**
-* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง 
+* *topic* `string` - ชื่อของ topic ที่ต้องการจะส่งข้อความไปถึง
 
 ```js
 microgear.unsubscribe("/outdoor/temp");
 ```
+
 ---
-**void microgear.resettoken (callback)**
+
+**void microgear.setCachePath (path)**
+โดยปกติแล้ว microgear จะเก็บไฟล์ token cache ใน directory เดียวกับ application โดยตั้งชื่อไฟล์ชื่อไฟล์ในรูปแบบ  microgear-<KEY>.cache เราสามารถกำหนด path ของ token cache file​ ใหม่ด้วยฟังก์ชั่น setCachePath() ซึ่งอาจจำเป็ฯต้องใช้ หากในไฟล์ Node.js application เดียวกัน มีการสร้าง microgear มากกว่าหนึ่งตัว
+
+**arguments**
+* *path* `string` - path ของไฟล์ cache
+
+```js
+microgear.setCachePath(function('microgear-g1.cache'){
+});
+```
+
+---
+
+**void microgear.resetToken (callback)**
 ส่งคำสั่ง revoke token ไปยัง netpie และลบ token ออกจาก cache ส่งผลให้ microgear ต้องขอ token ใหม่ในการเชื่อมต่อครั้งต่อไป
 
 **arguments**
 * *callback* `function` - callback function ที่จะถูกเรียกเมื่อการ reset token เสร็จสิ้น
 
 ```js
-microgear.resettoken(function(result){
+microgear.resetToken(function(result){
 });
 ```
 
 เนื่องจาก resettoken() เป็น asynchronous function หากต้องการ connect หลังจาก resettoken ต้องเขียนโค้ดในลักษณะนี้
 ```js
-microgear.resettoken(function(result){
+microgear.resetToken(function(result){
     microgear.connect(APPID);
 });
 ```
