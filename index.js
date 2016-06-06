@@ -104,6 +104,14 @@ function create(param) {
     }
 
     /**
+     * Override cache file path
+     * @param  {string} path cache file path
+     */
+    microgear.prototype.useTLS = function(usetls) {
+        this.securemode = usetls;
+    }
+
+    /**
      * Cache getter
      * @param  {string} key key name
      * @return {String}     value
@@ -506,7 +514,6 @@ function create(param) {
      */
     microgear.prototype.connect = function(appid,arg1,arg2) {
         this.appid = appid;
-        this.securemode = false;
         this.doConnect(arg1,arg2);
     }
 
@@ -516,17 +523,6 @@ function create(param) {
      */
     microgear.prototype.getinstance = function() {
         return this;
-    }
-
-    /**
-     * Initiate NetPIE secure connection
-     * @param  {String}   appid appid
-     * @param  {Function} done  Callback
-     */
-    microgear.prototype.secureconnect = function(appid,arg1,arg2) {
-        this.appid = appid;
-        this.securemode = true;
-        self.doConnect(arg1,arg2);
     }
 
     /**

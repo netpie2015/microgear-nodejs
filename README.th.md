@@ -2,6 +2,12 @@
 
 microgear-nodejs คือ client library ภาษา Node.js ที่ทำหน้าที่เป็นตัวกลางในการเชื่อมโยง application code หรือ hardware เข้ากับบริการของ netpie platform เพื่อการพัฒนา IOT application รายละเอียดเกี่ยวกับ netpie platform สามารถศึกษาได้จาก https://netpie.io
 
+## Port ที่มีการใช
+
+หากพบปัญหาการใช้งาน กรุณาตรวจสอบว่า port ต่อไปนี้ได้รับอนุญาตให้เข้าถึงจาก n
+- Non-TLS mode : 8080 and 1883 (microgear-nodejs ใช้ mode นี้เป็นค่าเริ่มต้น)
+- TLS mode : 8081 and 8883
+
 ## การติดตั้ง
 
 ```
@@ -151,6 +157,19 @@ microgear.resetToken(function(result){
 ```
 
 ---
+
+**void microgear.useTLS (tlsmode)**
+เลือกใช้หรือไม่ใช้การเข้ารหัสแบบ  TLS. หากกไม่ได้เซตอะไร โดยค่าเริ่มต้น microgear-nodejs จะไม่ใช้ TLS
+
+**arguments**
+* *tlsmode* `boolean` - `true คือใช้ TLS`
+
+```js
+microgear.useTLS(false);
+```
+
+---
+
 ## Events
 application ที่รันบน microgear จะมีการทำงานในแบบ event driven คือเป็นการทำงานตอบสนองต่อ event ต่างๆ ด้วยการเขียน callback function ขึ้นมารองรับในลักษณะนี้
 
