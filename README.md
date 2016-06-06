@@ -2,6 +2,12 @@
 
 microgear-nodejs is a client library for Node.js. The library is used to connect application code or hardware with the NETPIE Platform's service for developing IoT applications. For more details on the NETPIE Platform, please visit https://netpie.io .
 
+## Outgoing Network Port
+
+Make sure ther following ports are allowed to connect from your network.
+- Non-TLS mode : 8080 and 1883 (microgear-nodejs uses this mode by default)
+- TLS mode : 8081 and 8883
+
 ## Installation
 
 ```
@@ -148,6 +154,18 @@ Since the function resetToken() is asynchronous, to connect applicatin after tok
 microgear.resetToken(function(result){
     microgear.connect(APPID);
 });
+```
+
+---
+
+**void microgear.useTLS (tlsmode)**
+Enable or disable TLS. For microgear-nodejs, TLS is disabled by default.
+
+**arguments**
+* *tlsmode* `boolean` - The default is true (use TLS).
+
+```js
+microgear.useTLS(false);
 ```
 
 ---
