@@ -1,6 +1,6 @@
 # microgear-nodejs
 
-microgear-nodejs is a client library for Node.js. The library is used to connect application code or hardware with the NETPIE Platform's service for developing IoT applications. For more details on the NETPIE Platform, please visit https://netpie.io . 
+microgear-nodejs is a client library for Node.js. The library is used to connect application code or hardware with the NETPIE Platform's service for developing IoT applications. For more details on the NETPIE Platform, please visit https://netpie.io .
 
 ## Installation
 
@@ -12,9 +12,9 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
+const APPID  = <APPID>;
 const KEY    = <APPKEY>;
 const SECRET = <APPSECRET>;
-const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
     key : KEY,
@@ -44,10 +44,10 @@ microgear.connect(APPID);
 
 **Microgear.create (*gearkey*, *gearsecret*, *scope*)**
 
-**arguments** 
+**arguments**
 * *config* is a json object with the following attributes:
   * *gearkey* `string` - is used as a microgear identity.
-  * *gearsecret* `string` comes in a pair with gearkey. The secret is used for authentication and integrity. 
+  * *gearsecret* `string` comes in a pair with gearkey. The secret is used for authentication and integrity.
   * *alias* `string` - specifies the device alias.  
 
 ```js
@@ -62,7 +62,7 @@ var microgear = MicroGear.create({
 **void microgear.connect (*appid*, *callback*)**
 
 **arguments**
-* *appid* `string` - a group of application that microgear will connect to. 
+* *appid* `string` - a group of application that microgear will connect to.
 ```js
 microgear.connect("happyfarm");
 ```
@@ -80,7 +80,7 @@ microgear.setAlias("plant");
 **void microgear.chat (*gearname*, *message*)**
 
 **arguments**
-* *gearname* `string` - name of microgear to which to send a message. 
+* *gearname* `string` - name of microgear to which to send a message.
 * *message* `string` - message to be sent.
 
 ```js
@@ -91,7 +91,7 @@ microgear.chat("valve","I need water");
 In the case that the microgear want to send a message to an unspecified receiver, the developer can use the function publish to the desired topic, which all the microgears that subscribe such topic will receive a message.
 
 **arguments**
-* *topic* `string` - name of topic to be send a message to. 
+* *topic* `string` - name of topic to be send a message to.
 * *message* `string` - message to be sent.
 * *retained* `boolean` - retain a message or not (the default is `false`)
 
@@ -104,7 +104,7 @@ microgear.publish("/outdoor/humid","56",true);
 microgear may be interested in some topic.  The developer can use the function subscribe() to subscribe a message belong to such topic. If the topic used to retain a message, the microgear will receive a message everytime it subscribes that topic.
 
 **arguments**
-* *topic* `string` - name of the topic to send a message to. 
+* *topic* `string` - name of the topic to send a message to.
 
 ```js
 microgear.subscribe("/outdoor/temp");
@@ -114,11 +114,23 @@ microgear.subscribe("/outdoor/temp");
  cancel subscription
 
 **arguments**
-* *topic* `string` - name of the topic to send a message to. 
+* *topic* `string` - name of the topic to send a message to.
 
 ```js
 microgear.unsubscribe("/outdoor/temp");
 ```
+---
+
+**void microgear.setCachePath (path)**
+By default, a microgear token cache file is stored in the same directory as the application within a file name of this format : 'microgear-<KEY>.cache'. This function is for setting a path of microgear token cache file. It will be useful when you want to run multiple microgears of the same device key on the same location.
+
+**arguments**
+* *path* `string` - file path
+
+```js
+microgear.setCachePath('microgear-g1.cache');
+```
+
 ---
 **void microgear.resetToken (callback)**
 send a revoke token control message to NETPIE and delete the token from cache. As a result, the microgear will need to request a new token for the next connection.
@@ -139,6 +151,7 @@ microgear.resetToken(function(result){
 ```
 
 ---
+
 ## Events
 An application that runs on a microgear is an event-driven type, which responses to various events with the callback function in a form of event function call:
 

@@ -1,8 +1,7 @@
 /**
  * NetPIE microgear Library for Node.js
  * http://netpie.io
- * by Chavee 
- */
+*/
 
 module.exports.create = create;
 
@@ -23,19 +22,13 @@ const MGREV = 'NJS1b';
 /**
  * Constants
  */
-const TOKENCACHEFILENAME = 'microgear.cache';
+const DEBUGMODE = false;
 const MINTOKDELAYTIME = 100;
 const MAXTOKDELAYTIME = 30000;
-const DEBUGMODE = false;
 const RETRYCONNECTIONINTERVAL = 5000;
 
-var self = null;
-var events = require('events');
-var mqtt = require('mqtt');
 var OAuth = require('oauth');
 var crypto = require('crypto');
-var oauth;
-var httpclient = null;
 var topModule = module;
 while(topModule.parent) {
   topModule = topModule.parent;
@@ -43,171 +36,688 @@ while(topModule.parent) {
 var appdir = require('path').dirname(topModule.filename);   
 
 /**
- * Microgear constructor
- * @param  {String} gearkey    gearkey
- * @param  {String} gearsecret Gear secret
- * @return {[type]}            [description]
- */
-var microgear = function(gearkey,gearsecret,gearalias) {
-    this.securemode = false;
-    this.debugmode = DEBUGMODE;
-    this.gearkey = gearkey;
-    this.gearsecret = gearsecret;
-    this.gearalias = gearalias?gearalias.substring(0,16):null;
-    this.appid = null;
-    this.gearname = null;
-    this.accesstoken = null;
-    this.requesttoken = null;
-    this.client = null;
-    this.scope = '';
-    this.gearexaddress = null;
-    this.gearexport = null;
-    this.subscriptions = [];
-    this.options = {};
-}
-microgear.prototype = new events.EventEmitter;
-
-function jsonparse(jsontext) {
-    var jsonobj;
-    try {
-        jsonobj = JSON.parse(jsontext);
-    }
-    catch(e) {
-        return null;
-    }
-    return jsonobj;
-}
-
-function serialize(input) {
-    return JSON.stringify({_:input});
-}
-
-function deserialize(input) {
-    return jsonparse(input)._;
-}
-
-/** @type {Object} Token Cache object */
-var cache = {
-    getItem :   function(key) {
-                    var fs = require('fs');
-                    try {
-                        var val = fs.readFileSync(appdir+'/'+key);
-                        if (typeof(val)!='undefined') return deserialize(val);
-                        else return null;
-                    }
-                    catch(e) {
-                        return null;
-                    }
-                },
-    setItem :   function(key,val) {
-                    var fs = require('fs');
-                    fs.writeFileSync(appdir+'/'+key,serialize(val));
-                }
-}
-
-/**
- * Cache getter
- * @param  {string} key key name
- * @return {String}     value
- */
-function getGearCacheValue(key) {
-    var c = cache.getItem(TOKENCACHEFILENAME);
-    if (c == null) return null;
-    else return c[key];
-}
-
-/**
- * Cache setter
- * @param {String} key   key name
- * @param {String} value value
- */
-function setGearCacheValue(key,value) {
-    var c = cache.getItem(TOKENCACHEFILENAME);
-    if (c == null) c = {};
-    c[key] = value;
-    cache.setItem(TOKENCACHEFILENAME,c);
-}
-
-/**
- * Clear value of cache key
- * @param  {String} key key name
- * @return {String}     value
- */
-function clearGearCache(key) {
-    var c = cache.getItem(TOKENCACHEFILENAME);
-    if (c == null) return;
-    else {
-        if (key) {
-            c[key] = null;
-            cache.setItem(TOKENCACHEFILENAME,c);
-        }
-        else {
-            cache.setItem(TOKENCACHEFILENAME,null);
-        }
-    }
-}
-
-/**
  * Create MicroGear client
  * @param  {object} param client parameter
  * @return {object}       microgear client
  */
 function create(param) {
-    var mode;
-    var gkey = param.key?param.key:param.gearkey?param.gearkey:"";
-    var gsecret = param.secret?param.secret:param.gearsecret?param.gearsecret:"";
-    var galias = param.alias?param.alias:param.gearalias?param.gearalias:"";
+    var events = require('events');
+    var mqtt = require('mqtt');
+    var httpclient = null;
+    var oauth;
 
-    if (!param) return;
-    var scope = param.scope;
-
-    if (gkey && gsecret) {
-        var mg = new microgear(gkey, gsecret, galias);
-
-        mg.scope = param.scope;
-
-        self = mg;
-        return mg;
+    var microgear = function(gearkey,gearsecret,gearalias) {
+        this.securemode = false;
+        this.debugmode = DEBUGMODE;
+        this.gearkey = gearkey;
+        this.gearsecret = gearsecret;
+        this.gearalias = gearalias?gearalias.substring(0,16):null;
+        this.appid = null;
+        this.gearname = null;
+        this.accesstoken = null;
+        this.requesttoken = null;
+        this.client = null;
+        this.scope = '';
+        this.gearexaddress = null;
+        this.gearexport = null;
+        this.subscriptions = [];
+        this.options = {};
+        this.toktime = MINTOKDELAYTIME;
+        this.microgearcache = 'microgear-'+this.gearkey+'.cache';
     }
-    else {  
-        return null;
+
+    microgear.prototype = new events.EventEmitter;
+
+    microgear.prototype.cache = {
+        getItem :   function(key) {
+                        var fs = require('fs');
+                        try {
+                            var val = fs.readFileSync(appdir+'/'+key);
+                            if (typeof(val)!='undefined') {
+                                var jsonobj;
+                                try {
+                                    jsonobj = JSON.parse(val);
+                                }
+                                catch(e) {
+                                    return null;
+                                }
+                                return jsonobj._;
+                            }
+                            else return null;
+                        }
+                        catch(e) {
+                            return null;
+                        }
+                    },
+        setItem :   function(key,val) {
+                        var fs = require('fs');
+                        fs.writeFileSync(appdir+'/'+key,JSON.stringify({_:val}));
+                    }
+    };
+
+    /**
+     * Override cache file path
+     * @param  {string} path cache file path
+     */
+    microgear.prototype.setCachePath = function(path) {
+        this.microgearcache = path;
     }
-}
 
-/**
- * Helper function to obtain access token
- * @param  {Function} callback Callback
- */
-microgear.prototype.gettoken = function(callback) {
-    var that = this;
-
-    if (this.securemode) httpclient = require('https');
-    else httpclient = require('http');
-
-    if (this.debugmode) console.log('Check stored token');
-    
-    var cachekey = getGearCacheValue('key');
-    if (cachekey && cachekey != this.gearkey) {
-        microgear.prototype.resettoken();
-        clearGearCache();
+    /**
+     * Cache getter
+     * @param  {string} key key name
+     * @return {String}     value
+     */
+    microgear.prototype.getGearCacheValue = function(key) {
+        var c = this.cache.getItem(this.microgearcache);
+        if (c == null) return null;
+        else return c[key];
     }
-    setGearCacheValue('key',this.gearkey);
-    if (!this.accesstoken)
-        this.accesstoken = getGearCacheValue('accesstoken');
-    if (this.accesstoken) {
 
-        if (this.accesstoken.endpoint != "") {
-            var endpoint = require('url').parse(this.accesstoken.endpoint);
-            this.gearexaddress = endpoint.hostname;
-            this.gearexport = endpoint.port;
-            if (typeof(callback)=='function') callback(3);
+    /**
+     * Cache setter
+     * @param {String} key   key name
+     * @param {String} value value
+     */
+    microgear.prototype.setGearCacheValue = function(key,value) {
+        var c = this.cache.getItem(this.microgearcache);
+        if (c == null) c = {};
+        c[key] = value;
+        this.cache.setItem(this.microgearcache,c);
+    }
+
+    /**
+     * Clear cache
+     * @param {String} key   key name
+     */
+    microgear.prototype.clearGearCache = function(key) {
+        var c = this.cache.getItem(this.microgearcache);
+        if (c == null) return;
+        else {
+            if (key) {
+                c[key] = null;
+                this.cache.setItem(this.microgearcache,c);
+            }
+            else {
+                this.cache.setItem(this.microgearcache,null);
+            }
+        }
+    }
+
+    /**
+     * Helper function to obtain access token
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.gettoken = function(callback) {
+        var self = this;
+
+        if (this.securemode) httpclient = require('https');
+        else httpclient = require('http');
+
+        if (this.debugmode) console.log('Check stored token');
+        
+        var cachekey = this.getGearCacheValue('key');
+        if (cachekey && cachekey != this.gearkey) {
+            self.resettoken();
+            self.clearGearCache();
+        }
+        this.setGearCacheValue('key',this.gearkey);
+        if (!this.accesstoken)
+            this.accesstoken = this.getGearCacheValue('accesstoken');
+        if (this.accesstoken) {
+
+            if (this.accesstoken.endpoint != "") {
+                var endpoint = require('url').parse(this.accesstoken.endpoint);
+                this.gearexaddress = endpoint.hostname;
+                this.gearexport = endpoint.port;
+                if (typeof(callback)=='function') callback(3);
+            }
+            else {
+                var opt;            
+                if (this.securemode) {
+                    opt = {
+                        host: GEARAPIADDRESS,
+                        path: '/api/endpoint/'+this.gearkey,
+                        port: GEARAPISECUREPORT,
+                        method: 'GET'
+                    };
+                }
+                else {
+                    opt = {
+                        host: GEARAPIADDRESS,
+                        path: '/api/endpoint/'+this.gearkey,
+                        port: GEARAPIPORT,
+                        method: 'GET'
+                    };
+                }
+
+                var rq = httpclient.request(opt, function(res){
+                    var buff = '';
+                    res.on('data', function(chunk){
+                        buff += chunk;
+                    });             
+                    res.on('end', function(){
+                        if (buff) {
+                            self.accesstoken.endpoint = buff;
+                            self.setGearCacheValue('accesstoken',self.accesstoken);
+                            if (typeof(callback)=='function') callback(3);
+                        }
+                        if (typeof(callback)=='function') callback(2);
+                    });
+                });
+                rq.on('error',function(e) {
+                    if (typeof(callback)=='function') callback(2);
+                });
+                rq.end();
+            }
         }
         else {
-            var opt;            
+            if (!this.requesttoken)
+                this.requesttoken = this.getGearCacheValue('requesttoken');
+            if (this.requesttoken) {
+                /* send requesttoken to obtain accesstoken*/
+
+                if (self.debugmode) {
+                    console.log('already has request token');
+                    console.dir(this.requesttoken);
+                    console.log("Requesting an access token.");
+                }
+
+                var oauthurl;
+                if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/atoken';
+                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken';
+
+                var oauth = new OAuth.OAuth(
+                    null,
+                    oauthurl,
+                    this.gearkey,
+                    this.gearsecret,
+                    '1.0',
+                    '',
+                    'HMAC-SHA1'
+                );
+
+                oauth.getOAuthAccessToken(this.requesttoken.token, this.requesttoken.secret,this.requesttoken.verifier, function (err, oauth_token, oauth_token_secret, results){
+                    if (!err) {
+                        var hkey = oauth_token_secret+'&'+self.gearsecret;
+                        var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace(/\//g,'_');
+
+                        self.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
+                        if (results.flag != 'S') {
+                            self.setGearCacheValue('accesstoken',self.accesstoken);
+                            self.setGearCacheValue('requesttoken',null);
+                        }
+                        else {
+                            self.clearGearCache();
+                        }
+                        if (typeof(callback)=='function') callback(2);
+                    } 
+                    else {
+                        switch (err.statusCode) {
+                            case 401:   // not authorized yet
+                                        if (typeof(callback)=='function') callback(1);
+                                        break;
+                            case 500:   // eg. 500 request token not found
+                            default :   
+                                        self.emit('rejected','Request token rejected');
+                                        if (typeof(callback)=='function') callback(1);
+                                        break;
+                        }
+                    }
+                });
+            }
+            else {
+                if (self.debugmode) {
+                    console.log("Requesting a request token.");
+                }
+     
+                var verifier;
+                if (this.gearalias) verifier = this.gearalias;
+                else verifier = MGREV;
+
+                if (!this.scope) this.scope = '';
+
+                var oauthurl;
+                if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/rtoken';
+                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';            
+
+                var oauth = new OAuth.OAuth(
+                    oauthurl,
+                    null,
+                    this.gearkey,
+                    this.gearsecret,
+                    '1.0',
+                    'scope='+this.scope+'&appid='+this.appid+'&mgrev='+MGREV+'&verifier='+verifier,
+                    'HMAC-SHA1'
+                );
+
+                oauth.getOAuthRequestToken({},function(err, oauth_token, oauth_token_secret, results ){
+                    if (!err) {
+                        self.requesttoken = {token: oauth_token, secret: oauth_token_secret, verifier: verifier};
+                        self.setGearCacheValue('requesttoken',self.requesttoken);
+                        if (typeof(callback)=='function') callback(1);
+                    }
+                    else if (typeof(callback)=='function') callback(0);
+                });
+            }
+        }
+    }
+
+    /**
+     * Authenticate with broker using a current access token
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.brokerConnect = function(callback) {
+        var self = this;
+
+        var hkey = this.accesstoken.secret+'&'+this.gearsecret;
+        var mqttuser = this.gearkey+'%'+Math.floor(Date.now()/1000);
+        var mqttpassword = crypto.createHmac('sha1', hkey).update(this.accesstoken.token+'%'+mqttuser).digest('base64');
+        var mqttclientid = this.accesstoken.token;
+
+        if (this.debugmode) {
+            console.log("mqttuser     : "+mqttuser);
+            console.log("mqttpassword : "+mqttpassword);
+        }
+
+        this.clientid = mqttclientid;
+
+        if (this.securemode) {
+            this.client = mqtt.connect(
+                'mqtts://'+this.gearexaddress,
+                {   port: GBSPORT,
+                    username: mqttuser,
+                    password: mqttpassword,
+                    clientId: mqttclientid,
+                    protocolVersion: 3,
+                    keepalive: 10,
+                    will: this.options?this.options.will:{}
+                }
+            );
+        }
+        else {
+            this.client = mqtt.connect(
+                'mqtt://'+this.gearexaddress,
+                {   port: GBPORT,
+                    username: mqttuser,
+                    password: mqttpassword,
+                    clientId: mqttclientid,
+                    protocolVersion: 3,
+                    keepalive: 10,
+                    will: this.options?this.options.will:{}
+                }
+            );
+        }
+
+        if (this.client) {
+            /* subscribe for control messages */
+            this.client.subscribe('/&id/'+this.clientid+'/#');
+            if (typeof(callback)=='function') callback(null);
+        }
+        else {
+            if (typeof(callback)=='function') callback('error');
+            return;
+        }
+
+        this.client.on('error', function(err) {
+            switch (err.toString()) {
+                case 'Error: Connection refused: Bad username or password' : // code 4
+                    // token may be nolonger valid, try to request a new one
+                    self.emit('info','invalid token, requesting a new one');
+
+                    self.clearGearCache();
+                    self.requesttoken = null;
+                    self.accesstoken = null;
+
+                    self.client.end();
+                    setTimeout(function() {
+                        self.initiateConnection(function() {
+                            if (self.debugmode) console.log('auto reconnect');
+                        });
+                    }, RETRYCONNECTIONINTERVAL);
+                    break;
+                case 'Error: Connection refused: Not authorized' : // code 5
+                    self.emit('warning','microgear unauthorized');
+
+                    self.client.end();
+                    setTimeout(function() {
+                        self.initiateConnection(function() {
+                            if (self.debugmode) console.log('auto reconnect');
+                        });
+                    }, RETRYCONNECTIONINTERVAL);
+                    break;
+            }
+
+        });
+
+        this.client.on('message', function (topic, message) {
+            var plen = self.appid.length +1;
+            var rtop = topic.substr(plen,topic.length-plen);
+
+            if (rtop.substr(0,2)=='/&') {
+                var p = (rtop.substr(1,rtop.length-1)+'/').indexOf('/');
+                var ctop = rtop.substr(2,p);
+
+                switch (ctop) {
+                    case 'present' :
+                            self.emit('present',{event:'present',gearkey:message.toString()});
+                            break;
+                    case 'absent' :
+                            self.emit('absent',{event:'abesent',gearkey:message.toString()});
+                            break;
+                    case 'resetendpoint' :
+                            if (self.accesstoken && self.accesstoken.endpoint) {
+                                self.accesstoken.endpoint = "";
+                                self.setGearCacheValue('accesstoken',self.accesstoken);
+                                self.emit('info','endpoint reset');
+                            }
+                            break;
+                }
+            }
+            else {
+                self.emit('message',topic, message);
+            }
+        });
+
+        this.client.on('close', function() {
+            if (self.debugmode) console.log('client close');
+            self.emit('disconnected');
+        });
+
+        this.client.on('connect', function(pack) {
+            for(var i=0; i<self.subscriptions.length; i++) {
+                if (self.debugmode) console.log('auto subscribe '+self.subscriptions[i]);
+                self.client.subscribe(self.subscriptions[i]);
+            }
+
+            if (self.listeners('present')) {
+                self.client.subscribe('/'+self.appid+'/&present');
+            }
+            if (self.listeners('absent')) {
+                self.client.subscribe('/'+self.appid+'/&absent');
+            }
+            self.emit('connected');
+        });
+
+        this.client.on('end', function() {
+            self.emit('pieclosed');
+            self.emit('closed');
+        });
+    }
+
+    /**
+     * Initalize a connection to NETPIE
+     * @param  {object} callback function
+     */
+    microgear.prototype.initiateConnection= function(done) { 
+        var self = this;
+
+        this.gettoken(function(state) {
+            switch (state) {
+                case 0 :    // No token issue
+                            console.log('Error: request token is not issued, please check your key and secret.');
+                            throw new Error('Error: request token is not issued, please check your key and secret.');
+                            return;
+                case 1 :    // Request token issued or prepare to request request token again
+                            setTimeout(function() {
+                                if (self.toktime < MAXTOKDELAYTIME) self.toktime *= 2;
+                                self.initiateConnection(done);
+                            },self.toktime);
+                            return;
+                case 2 :    // Access token issued
+                            self.initiateConnection(done);
+                            self.toktime = 1;
+                            return;
+                case 3 :    // Has access token ready for connecting broker
+                            self.toktime = 1;
+                            self.brokerConnect(function() {
+                                if (typeof(done)=='function') done();
+                            });
+                            return;
+            }
+
+        });
+    }
+
+    /**
+     * Do NetPIE connection
+     * @param  {String}   appid appid
+     * @param  {Function} done  Callback
+     */
+    microgear.prototype.doConnect = function(arg1,arg2) {
+        var done = null;
+        if (typeof(arg1)=='function') done = arg1;
+        else {
+            if (typeof(arg1)=='object') {
+                this.options = arg1;
+                if (this.options && this.options.will && this.options.will.topic) {
+                    this.options.will.topic = '/'+appid+this.options.will.topic;
+                }
+            }
+            if (typeof(arg2)=='function') done = arg2;
+        }
+        this.initiateConnection(done);
+    };
+
+    /**
+     * Initiate NetPIE connection
+     * @param  {String}   appid appid
+     * @param  {Function} done  Callback
+     */
+    microgear.prototype.connect = function(appid,arg1,arg2) {
+        this.appid = appid;
+        this.securemode = false;
+        this.doConnect(arg1,arg2);
+    }
+
+    /*
+     * Get instance of the microgear
+     * @return {Object} microgear instance
+     */
+    microgear.prototype.getinstance = function() {
+        return this;
+    }
+
+    /**
+     * Initiate NetPIE secure connection
+     * @param  {String}   appid appid
+     * @param  {Function} done  Callback
+     */
+    microgear.prototype.secureconnect = function(appid,arg1,arg2) {
+        this.appid = appid;
+        this.securemode = true;
+        self.doConnect(arg1,arg2);
+    }
+
+    /**
+     * Close connection
+     * @param  {Function} done Callback
+     */
+    microgear.prototype.disconnect = function(done) {
+        this.client.end();
+        this.emit('disconnected');
+    }
+
+    /**
+     * Subscribe topic
+     * @param  {String}   topic    Topic string of the form /my/topic
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.subscribe = function(topic,callback) {
+        var self = this;
+
+        if (this.client.connected) {
+            this.client.subscribe('/'+this.appid+topic, function(err,granted) {
+                if (granted && granted[0]) {
+                    if (self.subscriptions.indexOf('/'+self.appid+topic)) {
+                        self.subscriptions.push('/'+self.appid+topic);
+                    }
+                }
+                if (typeof(callback)=='function') {
+                    if (err) callback(0);
+                    else {
+                        if (granted && granted[0] && granted[0].qos==0||granted[0].qos==1||granted[0].qos==2) {
+                            callback(1);
+                        }
+                        else callback(0);
+                    }
+                }
+            });
+        }
+        else {
+            self.emit('error','microgear is disconnected, cannot subscribe.');
+        }
+    }
+
+    /**
+     * Unscribe topic
+     * @param  {String}   topic    Topic string
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.unsubscribe = function(topic,callback) {
+        var self = this;
+
+        if (this.debugmode) {
+            console.log(this.subscriptions.indexOf('/'+this.appid+topic));
+            console.log(this.subscriptions);
+        }
+
+        this.client.unsubscribe('/'+this.appid+topic, function() {
+            self.subscriptions.splice(self.subscriptions.indexOf('/'+self.appid+topic));
+            if (self.debugmode)
+                console.log(self.subscriptions);
+            if (typeof(callback) == 'function') callback();
+        });
+    }
+
+    /**
+     * Deprecated
+     * Name this instance of microgear
+     * @param  {String}   gearname Gear name
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.setname = function (gearname, callback) {
+        var self = this;
+
+        if (this.gearname) this.unsubscribe('/gearname/'+this.gearname);
+        this.subscribe('/gearname/'+gearname, function() {
+            self.gearname = gearname;
+            if (typeof(callback) == 'function') callback();
+        });
+    }
+
+    /**
+     * Set alias on this instance
+     * @param  {String}   gearname Gear name
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.setalias = function (newalias, callback) {
+        var self = this;
+
+        this.publish('/@setalias/'+newalias, "", {}, function() {
+           self.gearalias = newalias;
+           if (typeof(callback) == 'function') callback();
+        });
+    }
+
+
+    /**
+     * Reset name of this instance
+     * @param  {Function} callback Callback
+     */
+    microgear.prototype.unsetname = function (callback) {
+        var self = this;
+        if (this.gearname != null) {
+            this.unsubscribe('/gearname/'+this.gearname, function() {
+                self.gearname = null;
+                if (typeof(callback) == 'function') callback();
+            });
+        }
+    }
+
+    /**
+     * Publish message
+     * @param  {String}   topic    Topic string
+     * @param  {String}   message  Message
+     * @param  {Object} param Publish Parameters
+     */
+    microgear.prototype.publish = function(topic, message, param, callback) {
+        var options;
+
+        switch (typeof(param)) {
+            case 'object'  : options = param;
+                             break;
+            case 'boolean' : options = {retain : param};
+                             break;
+            default        : options = {};
+        }
+        if (this.client.connected)
+            this.client.publish('/'+this.appid+topic, message, options, callback);
+        else
+            self.emit('error','microgear is disconnected, cannot publish.');
+    }
+
+    /**
+     * Send message to a microgear addressed by @gearname
+     * @param  {String}   gearname The name of the gear to send message to
+     * @param  {String}   message  Message
+     * @param  {Function} callback 
+     */
+    microgear.prototype.chat = function (gearname, message, options) {
+        this.publish('/gearname/'+gearname, message, options);
+    }
+
+    /**
+     * call api request on stream data, this method is available only for api tester at the moment
+     * @param  {String}   stream The name of stream
+     * @param  {String}   filter  Query condition
+     */
+    microgear.prototype.readstream = function(stream,filter) {
+        this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');     
+    }
+
+    /**
+     * call api request to record stream data, this method is available only for api tester at the moment
+     * @param  {String}   stream The name of stream
+     * @param  {String}   data  Stream data
+     */
+    microgear.prototype.writestream = function(stream,data) {
+        this.publish('/@writestream/'+stream,'{"data":'+data+'}');      
+    }
+
+    /**
+     * read data from a specific postbox. data will be pushed through the topic /@readpostbox/<box>
+     * @param  {String}   box The name of the postbox
+     */
+    microgear.prototype.readpostbox = function(box) {
+        this.publish('/@readpostbox/'+box);
+    }
+
+    /**
+     * put data to a specific postbox
+     * @param  {String}   box The name of the postbox
+     * @param  {String}   data  the text data to be stored
+     */
+    microgear.prototype.writepostbox = function(box,data) {
+        this.publish('/@writepostbox/'+box,data);      
+    }
+
+    /**
+     * Revoke and remove token from cache
+     * @param  {Function} callback Callabck
+     */
+    microgear.prototype.resettoken = function(callback) {
+        var self = this;
+
+        this.accesstoken = getGearCacheValue('accesstoken');
+        if (this.accesstoken) {
+            var opt;
+            var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
+
             if (this.securemode) {
                 opt = {
                     host: GEARAPIADDRESS,
-                    path: '/api/endpoint/'+this.gearkey,
+                    path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
                     port: GEARAPISECUREPORT,
                     method: 'GET'
                 };
@@ -215,589 +725,77 @@ microgear.prototype.gettoken = function(callback) {
             else {
                 opt = {
                     host: GEARAPIADDRESS,
-                    path: '/api/endpoint/'+this.gearkey,
+                    path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
                     port: GEARAPIPORT,
                     method: 'GET'
                 };
             }
 
             var rq = httpclient.request(opt, function(res){
-                var buff = '';
+                var result = '';
                 res.on('data', function(chunk){
-                    buff += chunk;
+                    result += chunk;
                 });             
                 res.on('end', function(){
-                    if (buff) {
-                        that.accesstoken.endpoint = buff;
-                        setGearCacheValue('accesstoken',that.accesstoken);
-                        if (typeof(callback)=='function') callback(3);
+                    if (result !== 'FAILED') {
+                        self.clearGearCache();
+                        if (typeof(callback)=='function') callback(null);
                     }
-                    if (typeof(callback)=='function') callback(2);
+                    else if (typeof(callback)=='function') callback(result);
                 });
             });
             rq.on('error',function(e) {
-                if (typeof(callback)=='function') callback(2);
+                self.emit('error','Reset token error : '+e.message);
+                if(typeof(callback)=='function') callback(e.message);
             });
             rq.end();
         }
-    }
-    else {
-        if (!this.requesttoken)
-            this.requesttoken = getGearCacheValue('requesttoken');
-        if (this.requesttoken) {
-            /* send requesttoken to obtain accesstoken*/
-
-            if (self.debugmode) {
-                console.log('already has request token');
-                console.dir(this.requesttoken);
-                console.log("Requesting an access token.");
-            }
-
-            var oauthurl;
-            if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/atoken';
-            else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken';
-
-            var oauth = new OAuth.OAuth(
-                null,
-                oauthurl,
-                this.gearkey,
-                this.gearsecret,
-                '1.0',
-                '',
-                'HMAC-SHA1'
-            );
-
-            oauth.getOAuthAccessToken(this.requesttoken.token, this.requesttoken.secret,this.requesttoken.verifier, function (err, oauth_token, oauth_token_secret, results){
-                if (!err) {
-                    var hkey = oauth_token_secret+'&'+that.gearsecret;
-                    var revokecode = crypto.createHmac('sha1', hkey).update(oauth_token).digest('base64').replace(/\//g,'_');
-
-                    that.accesstoken = {token:oauth_token, secret: oauth_token_secret, appkey: results.appkey, endpoint: results.endpoint, revokecode: revokecode};
-                    if (results.flag != 'S') {
-                        setGearCacheValue('accesstoken',that.accesstoken);
-                        setGearCacheValue('requesttoken',null);
-                    }
-                    else {
-                        clearGearCache();
-                    }
-                    if (typeof(callback)=='function') callback(2);
-                } 
-                else {
-                    switch (err.statusCode) {
-                        case 401:   // not authorized yet
-                                    if (typeof(callback)=='function') callback(1);
-                                    break;
-                        case 500:   // eg. 500 request token not found
-                        default :   
-                                    microgear.prototype.emit('rejected','Request token rejected');
-                                    if (typeof(callback)=='function') callback(1);
-                                    break;
-                    }
-                }
-            });
-        }
         else {
-            if (self.debugmode) {
-                console.log("Requesting a request token.");
-            }
- 
-            var verifier;
-            if (this.gearalias) verifier = this.gearalias;
-            else verifier = MGREV;
-
-            if (!this.scope) this.scope = '';
-
-            var oauthurl;
-            if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/rtoken';
-            else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';            
-
-            var oauth = new OAuth.OAuth(
-                oauthurl,
-                null,
-                this.gearkey,
-                this.gearsecret,
-                '1.0',
-                'scope='+this.scope+'&appid='+this.appid+'&mgrev='+MGREV+'&verifier='+verifier,
-                'HMAC-SHA1'
-            );
-
-            oauth.getOAuthRequestToken({},function(err, oauth_token, oauth_token_secret, results ){
-                if (!err) {
-                    that.requesttoken = {token: oauth_token, secret: oauth_token_secret, verifier: verifier};
-                    setGearCacheValue('requesttoken',that.requesttoken);
-                    if (typeof(callback)=='function') callback(1);
-                }
-                else if (typeof(callback)=='function') callback(0);
-            });
+            if (typeof(callback)=='function') callback(null);
         }
     }
-}
 
-/**
- * Get instance of the microgear
- * @return {Object} microgear instance
- */
-microgear.prototype.getinstance = function() {
-    return this;
-}
-
-var toktime = MINTOKDELAYTIME;
-function initiateconnection(done) {
-    self.gettoken(function(state) {
-        switch (state) {
-            case 0 :    /* No token issue */
-                        console.log('Error: request token is not issued, please check your key and secret.');
-                        throw new Error('Error: request token is not issued, please check your key and secret.');
-                        return;
-            case 1 :    /* Request token issued or prepare to request request token again */
-                        setTimeout(function() {
-                            if (toktime < MAXTOKDELAYTIME) toktime *= 2;
-                            initiateconnection(done);
-                        },toktime);
-                        return;
-            case 2 :    /* Access token issued */
-                        initiateconnection(done);
-                        toktime = 1;
-                        return;
-            case 3 :    /* Has access token ready for connecting broker */
-                        toktime = 1;
-                        self.brokerconnect(function() {
-                            if (typeof(done)=='function') done();
-                        });
-                        return;
-        }
-    });
-}
-
-process.on('uncaughtException', function(err) {
-    microgear.prototype.emit(err);
-});
-
-/**
- * Do NetPIE connection
- * @param  {String}   appid appid
- * @param  {Function} done  Callback
- */
-microgear.prototype.doconnect = function(arg1,arg2) {
-    var done = null;
-    if (typeof(arg1)=='function') done = arg1;
-    else {
-        if (typeof(arg1)=='object') {
-            this.options = arg1;
-            if (this.options && this.options.will && this.options.will.topic) {
-                this.options.will.topic = '/'+appid+this.options.will.topic;
-            }
-        }
-        if (typeof(arg2)=='function') done = arg2;
-    }
-    initiateconnection(done);
-};
-
-/**
- * Initiate NetPIE connection
- * @param  {String}   appid appid
- * @param  {Function} done  Callback
- */
-microgear.prototype.connect = function(appid,arg1,arg2) {
-    this.appid = appid;
-    this.securemode = false;
-    microgear.prototype.doconnect(arg1,arg2);
-}
-
-/**
- * Initiate NetPIE secure connection
- * @param  {String}   appid appid
- * @param  {Function} done  Callback
- */
-microgear.prototype.secureconnect = function(appid,arg1,arg2) {
-    this.appid = appid;
-    this.securemode = true;
-    microgear.prototype.doconnect(arg1,arg2);
-}
-
-/**
- * Close connection
- * @param  {Function} done Callback
- */
-microgear.prototype.disconnect = function(done) {
-    this.client.end();
-    this.emit('disconnected');
-}
-
-/**
- * Authenticate with broker using a current access token
- * @param  {Function} callback Callback
- */
-microgear.prototype.brokerconnect = function(callback) {
-    var that = this;
-    var hkey = this.accesstoken.secret+'&'+this.gearsecret;
-    var mqttuser = this.gearkey+'%'+Math.floor(Date.now()/1000);
-    var mqttpassword = crypto.createHmac('sha1', hkey).update(this.accesstoken.token+'%'+mqttuser).digest('base64');
-    var mqttclientid = this.accesstoken.token;
-
-    if (this.debugmode) {
-        console.log("mqttuser     : "+mqttuser);
-        console.log("mqttpassword : "+mqttpassword);
-    }
-
-    this.clientid = mqttclientid;
-
-    if (this.securemode) {
-        this.client = mqtt.connect(
-            'mqtts://'+this.gearexaddress,
-            {   port: GBSPORT,
-                username: mqttuser,
-                password: mqttpassword,
-                clientId: mqttclientid,
-                protocolVersion: 3,
-                keepalive: 10,
-                will: this.options?this.options.will:{}
-            }
-        );
-    }
-    else {
-        this.client = mqtt.connect(
-            'mqtt://'+this.gearexaddress,
-            {   port: GBPORT,
-                username: mqttuser,
-                password: mqttpassword,
-                clientId: mqttclientid,
-                protocolVersion: 3,
-                keepalive: 10,
-                will: this.options?this.options.will:{}
-            }
-    );
-
-    }
-
-    if (this.client) {
-        /* subscribe for control messages */
-        this.client.subscribe('/&id/'+this.clientid+'/#');
-        if (typeof(callback)=='function') callback(null);
-    }
-    else {
-        if (typeof(callback)=='function') callback('error');
-        return;
-    }
-
-    this.client.on('error', function(err) {
-        switch (err.toString()) {
-            case 'Error: Connection refused: Bad username or password' : // code 4
-                // token may be nolonger valid, try to request a new one
-                microgear.prototype.emit('info','invalid token, requesting a new one');
-
-                clearGearCache();
-                that.requesttoken = null;
-                that.accesstoken = null;
-
-                self.client.end();
-                setTimeout(function() {
-                    initiateconnection(function() {
-                        if (self.debugmode) console.log('auto reconnect');
-                    });
-                }, RETRYCONNECTIONINTERVAL);
-                break;
-            case 'Error: Connection refused: Not authorized' : // code 5
-                microgear.prototype.emit('warning','microgear unauthorized');
-
-                self.client.end();
-                setTimeout(function() {
-                    initiateconnection(function() {
-                        if (self.debugmode) console.log('auto reconnect');
-                    });
-                }, RETRYCONNECTIONINTERVAL);
-                break;
-        }
-
+    process.on('uncaughtException', function(err) {
+        this.emit(err);
     });
 
-    this.client.on('message', function (topic, message) {
-        var plen = self.appid.length +1;
-        var rtop = topic.substr(plen,topic.length-plen);
+    microgear.prototype.secureConnect = microgear.prototype.secureconnect;
+    microgear.prototype.setName = microgear.prototype.setname;
+    microgear.prototype.unsetName = microgear.prototype.unsetname;
+    microgear.prototype.setAlias = microgear.prototype.setalias;
+    microgear.prototype.resetToken = microgear.prototype.resettoken;
 
-        if (rtop.substr(0,2)=='/&') {
-            var p = (rtop.substr(1,rtop.length-1)+'/').indexOf('/');
-            var ctop = rtop.substr(2,p);
+    var gkey = param.key || param.gearkey || "";
+    var gsecret = param.secret || param.gearsecret || "";
+    var galias = param.alias || param.gearalias || "";
 
-            switch (ctop) {
-                case 'present' : 
-                        microgear.prototype.emit('present',{event:'present',gearkey:message.toString()});
+    if (!param) return;
+    var scope = param.scope;
+
+    if (gkey && gsecret) {
+        var mg = new microgear(gkey, gsecret, galias);
+        mg.scope = param.scope;
+        mg.on('newListener', function(event,listener) {
+            switch (event) {
+                case 'present' :
+                        if (this.client) {
+                            if (this.client.connected) {
+                                this.subscribe('/&present');
+                            }
+                        }
                         break;
-                case 'absent' : 
-                        microgear.prototype.emit('absent',{event:'abesent',gearkey:message.toString()});
-                        break;
-                case 'resetendpoint' :
-                        if (self.accesstoken && self.accesstoken.endpoint) {
-                            self.accesstoken.endpoint = "";
-                            setGearCacheValue('accesstoken',self.accesstoken);
-                            microgear.prototype.emit('info','endpoint reset');
+                case 'absent' :
+                        if (this.client) {
+                            if (this.client.connected) {
+                                this.subscribe('/&absent');
+                            }
                         }
                         break;
             }
-        }
-        else {
-            microgear.prototype.emit('message',topic, message);
-        }
-    });
-
-    this.client.on('close', function() {
-        if (self.debugmode) console.log('client close');
-        this.emit('disconnected');
-    });
-
-    this.client.on('connect', function(pack) {
-
-        for(var i=0; i<self.subscriptions.length; i++) {
-            if (self.debugmode) console.log('auto subscribe '+self.subscriptions[i]);
-            self.client.subscribe(self.subscriptions[i]);
-        }
-
-        if (microgear.prototype.listeners('present')) {
-            self.client.subscribe('/'+self.appid+'/&present');
-        }
-        if (microgear.prototype.listeners('absent')) {
-            self.client.subscribe('/'+self.appid+'/&absent');
-        }
-
-        microgear.prototype.emit('connected');
-    });
-
-    this.client.on('end', function() {
-        microgear.prototype.emit('pieclosed');
-        microgear.prototype.emit('closed');
-    });
-}
-
-/**
- * Subscribe topic
- * @param  {String}   topic    Topic string of the form /my/topic
- * @param  {Function} callback Callback
- */
-microgear.prototype.subscribe = function(topic,callback) {
-    if (this.client.connected) {
-
-        this.client.subscribe('/'+this.appid+topic, function(err,granted) {
-            if (granted && granted[0]) {
-                if (self.subscriptions.indexOf('/'+self.appid+topic)) {
-                    self.subscriptions.push('/'+self.appid+topic);
-                }
-            }
-            if (typeof(callback)=='function') {
-                if (err) callback(0);
-                else {
-                    if (granted && granted[0] && granted[0].qos==0||granted[0].qos==1||granted[0].qos==2) {
-                        callback(1);
-                    }
-                    else callback(0);
-                }
-            }
         });
-    }
-    else
-        microgear.prototype.emit('error','microgear is disconnected, cannot subscribe.');
-}
-
-/**
- * Unscribe topic
- * @param  {String}   topic    Topic string
- * @param  {Function} callback Callback
- */
-microgear.prototype.unsubscribe = function(topic,callback) {
-    if (this.debugmode) {
-        console.log(this.subscriptions.indexOf('/'+this.appid+topic));
-        console.log(this.subscriptions);
-    }
-
-    this.client.unsubscribe('/'+this.appid+topic, function() {
-        self.subscriptions.splice(self.subscriptions.indexOf('/'+this.appid+topic));
-        if (this.debugmode)
-            console.log(self.subscriptions);
-        if (typeof(callback) == 'function') callback();
-    });
-}
-
-/**
- * Deprecated
- * Name this instance of microgear
- * @param  {String}   gearname Gear name
- * @param  {Function} callback Callback
- */
-microgear.prototype.setname = function (gearname, callback) {
-    if (this.gearname) this.unsubscribe('/gearname/'+this.gearname);
-    this.subscribe('/gearname/'+gearname, function() {
-        this.gearname = gearname;
-        if (typeof(callback) == 'function') callback();
-    });
-}
-
-/**
- * Set alias on this instance
- * @param  {String}   gearname Gear name
- * @param  {Function} callback Callback
- */
-microgear.prototype.setalias = function (newalias, callback) {
-    this.publish('/@setalias/'+newalias, "", {}, function() {
-       this.gearalias = newalias;
-       if (typeof(callback) == 'function') callback();
-    });
-}
-
-
-/**
- * Reset name of this instance
- * @param  {Function} callback Callback
- */
-microgear.prototype.unsetname = function (callback) {
-    if (this.gearname != null) {
-        this.unsubscribe('/gearname/'+this.gearname, function() {
-            this.gearname = null;
-            if (typeof(callback) == 'function') callback();
-        });
-    }
-}
-
-/**
- * Publish message
- * @param  {String}   topic    Topic string
- * @param  {String}   message  Message
- * @param  {Object} param Publish Parameters
- */
-microgear.prototype.publish = function(topic, message, param, callback) {
-    var options;
-
-    switch (typeof(param)) {
-        case 'object'  : options = param;
-                         break;
-        case 'boolean' : options = {retain : param};
-                         break;
-        default        : options = {};
-    }
-    if (this.client.connected)
-        this.client.publish('/'+this.appid+topic, message, options, callback);
-    else
-        microgear.prototype.emit('error','microgear is disconnected, cannot publish.');
-}
-
-/**
- * Send message to a microgear addressed by @gearname
- * @param  {String}   gearname The name of the gear to send message to
- * @param  {String}   message  Message
- * @param  {Function} callback 
- */
-microgear.prototype.chat = function (gearname, message, options) {
-    this.publish('/gearname/'+gearname, message, options);
-}
-
-/**
- * handle a new event listening
- */
-microgear.prototype.on('newListener', function(event,listener) {
-    switch (event) {
-        case 'present' :
-                if (this.client) {
-                    if (this.client.connected) {
-                        this.subscribe('/&present');
-                    }
-                }
-                break;
-        case 'absent' :
-                if (this.client) {
-                    if (this.client.connected) {
-                        this.subscribe('/&absent');
-                    }
-                }
-                break;
-    }
-});
-
-/**
- * call api request on stream data, this method is available only for api tester at the moment
- * @param  {String}   stream The name of stream
- * @param  {String}   filter  Query condition
- */
-microgear.prototype.readstream = function(stream,filter) {
-    this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');     
-}
-
-/**
- * call api request to record stream data, this method is available only for api tester at the moment
- * @param  {String}   stream The name of stream
- * @param  {String}   data  Stream data
- */
-microgear.prototype.writestream = function(stream,data) {
-    this.publish('/@writestream/'+stream,'{"data":'+data+'}');      
-}
-
-/**
- * read data from a specific postbox. data will be pushed through the topic /@readpostbox/<box>
- * @param  {String}   box The name of the postbox
- */
-microgear.prototype.readpostbox = function(box) {
-    this.publish('/@readpostbox/'+box);
-}
-
-/**
- * put data to a specific postbox
- * @param  {String}   box The name of the postbox
- * @param  {String}   data  the text data to be stored
- */
-microgear.prototype.writepostbox = function(box,data) {
-    this.publish('/@writepostbox/'+box,data);      
-}
-
-/**
- * Revoke and remove token from cache
- * @param  {Function} callback Callabck
- */
-microgear.prototype.resettoken = function(callback) {
-    this.accesstoken = getGearCacheValue('accesstoken');
-    if (this.accesstoken) {
-        var opt;
-        var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
-
-        if (this.securemode) {
-            opt = {
-                host: GEARAPIADDRESS,
-                path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
-                port: GEARAPISECUREPORT,
-                method: 'GET'
-            };
-        }
-        else {
-            opt = {
-                host: GEARAPIADDRESS,
-                path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
-                port: GEARAPIPORT,
-                method: 'GET'
-            };
-        }
-
-        var rq = httpclient.request(opt, function(res){
-            var result = '';
-            res.on('data', function(chunk){
-                result += chunk;
-            });             
-            res.on('end', function(){
-                if (result !== 'FAILED') {
-                    clearGearCache();
-                    if (typeof(callback)=='function') callback(null);
-                }
-                else if (typeof(callback)=='function') callback(result);
-            });
-        });
-        rq.on('error',function(e) {
-            microgear.prototype.emit('error','Reset token error : '+e.message);
-            if(typeof(callback)=='function') callback(e.message);
-        });
-        rq.end();
+        return mg;
     }
     else {
-        if (typeof(callback)=='function') callback(null);
+        return null;
     }
 }
-
-microgear.prototype.secureConnect = microgear.prototype.secureconnect;
-microgear.prototype.setName = microgear.prototype.setname;
-microgear.prototype.unsetName = microgear.prototype.unsetname;
-microgear.prototype.setAlias = microgear.prototype.setalias;
-microgear.prototype.resetToken = microgear.prototype.resettoken;
