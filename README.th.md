@@ -127,8 +127,7 @@ microgear.unsubscribe("/outdoor/temp");
 * *path* `string` - path ของไฟล์ cache
 
 ```js
-microgear.setCachePath(function('microgear-g1.cache'){
-});
+microgear.setCachePath('microgear-g1.cache');
 ```
 
 ---

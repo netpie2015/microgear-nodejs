@@ -12,7 +12,7 @@ npm install microgear
 ```js
 var MicroGear = require('microgear');
 
-const APPID     = <APPID>;
+const APPID  = <APPID>;
 const KEY    = <APPKEY>;
 const SECRET = <APPSECRET>;
 
@@ -128,8 +128,7 @@ By default, a microgear token cache file is stored in the same directory as the 
 * *path* `string` - file path
 
 ```js
-microgear.setCachePath(function('microgear-g1.cache'){
-});
+microgear.setCachePath('microgear-g1.cache');
 ```
 
 ---
