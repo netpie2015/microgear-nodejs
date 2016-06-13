@@ -198,7 +198,6 @@ function create(param) {
                         method: 'GET'
                     };
                 }
-
                 var rq = httpclient.request(opt, function(res){
                     var buff = '';
                     res.on('data', function(chunk){
@@ -703,9 +702,13 @@ function create(param) {
      * @param  {Function} callback Callabck
      */
     microgear.prototype.resettoken = function(callback) {
+        var httpclient;
         var self = this;
 
-        this.accesstoken = getGearCacheValue('accesstoken');
+        if (this.securemode) httpclient = require('https');
+        else httpclient = require('http');
+
+        this.accesstoken = this.getGearCacheValue('accesstoken');
         if (this.accesstoken) {
             var opt;
             var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
@@ -731,7 +734,7 @@ function create(param) {
                 var result = '';
                 res.on('data', function(chunk){
                     result += chunk;
-                });             
+                });
                 res.on('end', function(){
                     if (result !== 'FAILED') {
                         self.clearGearCache();
