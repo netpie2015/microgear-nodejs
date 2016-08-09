@@ -34,6 +34,7 @@ while(topModule.parent) {
   topModule = topModule.parent;
 }
 var appdir = require('path').dirname(topModule.filename);   
+const ps = {p:'online',a:'offline',n:'aliased',u:'unaliased'};
 
 /**
  * Create MicroGear client
@@ -407,10 +408,15 @@ function create(param) {
 
                 switch (ctop) {
                     case 'present' :
-                            self.emit('present',{event:'present',gearkey:message.toString()});
-                            break;
-                    case 'absent' :
-                            self.emit('absent',{event:'abesent',gearkey:message.toString()});
+                    case 'absent'  :
+                                var pm;
+                                try {
+                                    pm = JSON.parse(message.toString());
+                                }
+                                catch(e) {
+                                    pm = message.toString();
+                                }
+                            self.emit(ctop, pm);
                             break;
                     case 'resetendpoint' :
                             if (self.accesstoken && self.accesstoken.endpoint) {
@@ -443,6 +449,11 @@ function create(param) {
             if (self.listeners('absent')) {
                 self.client.subscribe('/'+self.appid+'/&absent');
             }
+
+            if (self.gearalias) {
+                self.setalias(self.gearalias);
+            }
+
             self.emit('connected');
         });
 
