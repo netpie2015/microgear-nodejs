@@ -766,7 +766,11 @@ function create(param) {
     }
 
     process.on('uncaughtException', function(err) {
-        this.emit(err);
+        if (this.debugmode) {
+            console.log(err);
+        }
+
+        this.emit('error', err.toString());
     });
 
     microgear.prototype.secureConnect = microgear.prototype.secureconnect;
