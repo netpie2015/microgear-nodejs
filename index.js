@@ -33,7 +33,8 @@ var topModule = module;
 while(topModule.parent) {
   topModule = topModule.parent;
 }
-var appdir = require('path').dirname(topModule.filename);   
+var appdir = require('path').dirname(topModule.filename);
+const ps = {p:'online',a:'offline',n:'aliased',u:'unaliased'};
 
 /**
  * Create MicroGear client
@@ -163,7 +164,7 @@ function create(param) {
         else httpclient = require('http');
 
         if (this.debugmode) console.log('Check stored token');
-        
+
         var cachekey = this.getGearCacheValue('key');
         if (cachekey && cachekey != this.gearkey) {
             self.resettoken();
@@ -181,7 +182,7 @@ function create(param) {
                 if (typeof(callback)=='function') callback(3);
             }
             else {
-                var opt;            
+                var opt;
                 if (this.securemode) {
                     opt = {
                         host: GEARAPIADDRESS,
@@ -198,12 +199,11 @@ function create(param) {
                         method: 'GET'
                     };
                 }
-
                 var rq = httpclient.request(opt, function(res){
                     var buff = '';
                     res.on('data', function(chunk){
                         buff += chunk;
-                    });             
+                    });
                     res.on('end', function(){
                         if (buff) {
                             self.accesstoken.endpoint = buff;
@@ -259,14 +259,14 @@ function create(param) {
                             self.clearGearCache();
                         }
                         if (typeof(callback)=='function') callback(2);
-                    } 
+                    }
                     else {
                         switch (err.statusCode) {
                             case 401:   // not authorized yet
                                         if (typeof(callback)=='function') callback(1);
                                         break;
                             case 500:   // eg. 500 request token not found
-                            default :   
+                            default :
                                         self.emit('rejected','Request token rejected');
                                         if (typeof(callback)=='function') callback(1);
                                         break;
@@ -278,7 +278,7 @@ function create(param) {
                 if (self.debugmode) {
                     console.log("Requesting a request token.");
                 }
-     
+
                 var verifier;
                 if (this.gearalias) verifier = this.gearalias;
                 else verifier = MGREV;
@@ -287,7 +287,7 @@ function create(param) {
 
                 var oauthurl;
                 if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/rtoken';
-                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';            
+                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';
 
                 var oauth = new OAuth.OAuth(
                     oauthurl,
@@ -408,10 +408,15 @@ function create(param) {
 
                 switch (ctop) {
                     case 'present' :
-                            self.emit('present',{event:'present',gearkey:message.toString()});
-                            break;
-                    case 'absent' :
-                            self.emit('absent',{event:'abesent',gearkey:message.toString()});
+                    case 'absent'  :
+                                var pm;
+                                try {
+                                    pm = JSON.parse(message.toString());
+                                }
+                                catch(e) {
+                                    pm = message.toString();
+                                }
+                            self.emit(ctop, pm);
                             break;
                     case 'resetendpoint' :
                             if (self.accesstoken && self.accesstoken.endpoint) {
@@ -444,6 +449,11 @@ function create(param) {
             if (self.listeners('absent')) {
                 self.client.subscribe('/'+self.appid+'/&absent');
             }
+
+            if (self.gearalias) {
+                self.setalias(self.gearalias);
+            }
+
             self.emit('connected');
         });
 
@@ -457,7 +467,7 @@ function create(param) {
      * Initalize a connection to NETPIE
      * @param  {object} callback function
      */
-    microgear.prototype.initiateConnection= function(done) { 
+    microgear.prototype.initiateConnection= function(done) {
         var self = this;
 
         this.gettoken(function(state) {
@@ -552,7 +562,7 @@ function create(param) {
                 if (typeof(callback)=='function') {
                     if (err) callback(0);
                     else {
-                        if (granted && granted[0] && granted[0].qos==0||granted[0].qos==1||granted[0].qos==2) {
+                        if (granted && granted[0] && (granted[0].qos==0 || granted[0].qos==1 || granted[0].qos==2)) {
                             callback(1);
                         }
                         else callback(0);
@@ -657,7 +667,7 @@ function create(param) {
      * Send message to a microgear addressed by @gearname
      * @param  {String}   gearname The name of the gear to send message to
      * @param  {String}   message  Message
-     * @param  {Function} callback 
+     * @param  {Function} callback
      */
     microgear.prototype.chat = function (gearname, message, options) {
         this.publish('/gearname/'+gearname, message, options);
@@ -669,7 +679,7 @@ function create(param) {
      * @param  {String}   filter  Query condition
      */
     microgear.prototype.readstream = function(stream,filter) {
-        this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');     
+        this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');
     }
 
     /**
@@ -678,7 +688,7 @@ function create(param) {
      * @param  {String}   data  Stream data
      */
     microgear.prototype.writestream = function(stream,data) {
-        this.publish('/@writestream/'+stream,'{"data":'+data+'}');      
+        this.publish('/@writestream/'+stream,'{"data":'+data+'}');
     }
 
     /**
@@ -695,7 +705,7 @@ function create(param) {
      * @param  {String}   data  the text data to be stored
      */
     microgear.prototype.writepostbox = function(box,data) {
-        this.publish('/@writepostbox/'+box,data);      
+        this.publish('/@writepostbox/'+box,data);
     }
 
     /**
@@ -703,9 +713,13 @@ function create(param) {
      * @param  {Function} callback Callabck
      */
     microgear.prototype.resettoken = function(callback) {
+        var httpclient;
         var self = this;
 
-        this.accesstoken = getGearCacheValue('accesstoken');
+        if (this.securemode) httpclient = require('https');
+        else httpclient = require('http');
+
+        this.accesstoken = this.getGearCacheValue('accesstoken');
         if (this.accesstoken) {
             var opt;
             var revokecode = this.accesstoken.revokecode.replace(/\//g,'_');
@@ -731,7 +745,7 @@ function create(param) {
                 var result = '';
                 res.on('data', function(chunk){
                     result += chunk;
-                });             
+                });
                 res.on('end', function(){
                     if (result !== 'FAILED') {
                         self.clearGearCache();
@@ -752,7 +766,11 @@ function create(param) {
     }
 
     process.on('uncaughtException', function(err) {
-        this.emit(err);
+        if (this.debugmode) {
+            console.log(err);
+        }
+
+        this.emit('error', err.toString());
     });
 
     microgear.prototype.secureConnect = microgear.prototype.secureconnect;
