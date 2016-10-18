@@ -660,7 +660,7 @@ function create(param) {
         if (this.client.connected)
             this.client.publish('/'+this.appid+topic, message, options, callback);
         else
-            self.emit('error','microgear is disconnected, cannot publish.');
+            this.emit('error','microgear is disconnected, cannot publish.');
     }
 
     /**
