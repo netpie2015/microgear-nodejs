@@ -126,6 +126,18 @@ microgear.subscribe("/outdoor/temp");
 microgear.unsubscribe("/outdoor/temp");
 ```
 ---
+**void microgear.writeFeed (*feedid*, *datajson* [, *apikey*])**
+write time series data to a feed storage
+
+**arguments**
+* *feedid* `string` - name of the feed 
+* *datajson* `string` - data in json format 
+* *apikey* `string` - apikey for authorization. If apikey is not specified, you will need to allow the AppID to access feed and then the default apikey will be assigned automatically.
+
+```js
+microgear.writeFeed("homesensor",{temp:25.7,humid:62.8,light:8.5});
+```
+---
 
 **void microgear.setCachePath (path)**
 By default, a microgear token cache file is stored in the same directory as the application within a file name of this format : 'microgear-<KEY>.cache'. This function is for setting a path of microgear token cache file. It will be useful when you want to run multiple microgears of the same device key on the same location.
