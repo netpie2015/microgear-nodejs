@@ -427,6 +427,14 @@ function create(param) {
                             break;
                 }
             }
+            else if (topic.substr(0,1)=='@') {
+                switch (topic) {
+                    case '@info' :  self.emit('info',message);
+                                    break;
+                    case '@error' : self.emit('error',message);
+                                    break;
+                }
+            }
             else {
                 self.emit('message',topic, message);
             }
@@ -642,6 +650,19 @@ function create(param) {
     }
 
     /**
+     * Write data to feed
+     * @param  {String} feedid FeedID
+     * @param  {Object} datajson Data in a json format
+     * @param  {String} apikey API Key for authorization (optional)
+     */
+    microgear.prototype.writefeed = function (feedid, datajson, apikey) {
+        var cmd = '/@writefeed/'+feedid;
+        if (apikey) cmd += '/'+apikey;
+        if (typeof(datajson) == 'object') datajson = JSON.stringify(datajson);
+        this.publish(cmd,datajson);
+    };
+
+    /**
      * Publish message
      * @param  {String}   topic    Topic string
      * @param  {String}   message  Message
@@ -776,6 +797,7 @@ function create(param) {
     microgear.prototype.secureConnect = microgear.prototype.secureconnect;
     microgear.prototype.setName = microgear.prototype.setname;
     microgear.prototype.unsetName = microgear.prototype.unsetname;
+    microgear.prototype.writeFeed = microgear.prototype.writefeed;
     microgear.prototype.setAlias = microgear.prototype.setalias;
     microgear.prototype.resetToken = microgear.prototype.resettoken;
 
