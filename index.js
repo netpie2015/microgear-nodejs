@@ -695,24 +695,6 @@ function create(param) {
     }
 
     /**
-     * call api request on stream data, this method is available only for api tester at the moment
-     * @param  {String}   stream The name of stream
-     * @param  {String}   filter  Query condition
-     */
-    microgear.prototype.readstream = function(stream,filter) {
-        this.publish('/@readstream/'+stream,'{"filter":"'+filter+'"}');
-    }
-
-    /**
-     * call api request to record stream data, this method is available only for api tester at the moment
-     * @param  {String}   stream The name of stream
-     * @param  {String}   data  Stream data
-     */
-    microgear.prototype.writestream = function(stream,data) {
-        this.publish('/@writestream/'+stream,'{"data":'+data+'}');
-    }
-
-    /**
      * read data from a specific postbox. data will be pushed through the topic /@readpostbox/<box>
      * @param  {String}   box The name of the postbox
      */
@@ -787,11 +769,7 @@ function create(param) {
     }
 
     process.on('uncaughtException', function(err) {
-        if (this.debugmode) {
-            console.log(err);
-        }
-
-        this.emit('error', err.toString());
+        console.log(err.toString());
     });
 
     microgear.prototype.secureConnect = microgear.prototype.secureconnect;
