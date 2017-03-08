@@ -8,7 +8,7 @@ module.exports.create = create;
 /**
  * General API Endpoint
  */
-const GEARAPIADDRESS = 'ga.netpie.io';
+const GEARAPIADDRESS = 'pct.netpie.io';
 const GEARAPIPORT = '8080';
 const GEARAPISECUREPORT = '8081';
 const GBPORT = '1883';
