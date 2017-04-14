@@ -27,6 +27,7 @@ const MINTOKDELAYTIME = 100;
 const MAXTOKDELAYTIME = 30000;
 const RETRYCONNECTIONINTERVAL = 5000;
 
+var GEARAUTH = GEARAPIADDRESS;
 var OAuth = require('oauth');
 var crypto = require('crypto');
 var topModule = module;
@@ -185,7 +186,7 @@ function create(param) {
                 var opt;
                 if (this.securemode) {
                     opt = {
-                        host: GEARAPIADDRESS,
+                        host: GEARAUTH,
                         path: '/api/endpoint/'+this.gearkey,
                         port: GEARAPISECUREPORT,
                         method: 'GET'
@@ -193,7 +194,7 @@ function create(param) {
                 }
                 else {
                     opt = {
-                        host: GEARAPIADDRESS,
+                        host: GEARAUTH,
                         path: '/api/endpoint/'+this.gearkey,
                         port: GEARAPIPORT,
                         method: 'GET'
@@ -232,8 +233,8 @@ function create(param) {
                 }
 
                 var oauthurl;
-                if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/atoken';
-                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/atoken';
+                if (this.securemode) oauthurl = 'https://'+GEARAUTH+':'+GEARAPISECUREPORT+'/api/atoken';
+                else oauthurl = 'http://'+GEARAUTH+':'+GEARAPIPORT+'/api/atoken';
 
                 var oauth = new OAuth.OAuth(
                     null,
@@ -286,8 +287,8 @@ function create(param) {
                 if (!this.scope) this.scope = '';
 
                 var oauthurl;
-                if (this.securemode) oauthurl = 'https://'+GEARAPIADDRESS+':'+GEARAPISECUREPORT+'/api/rtoken';
-                else oauthurl = 'http://'+GEARAPIADDRESS+':'+GEARAPIPORT+'/api/rtoken';
+                if (this.securemode) oauthurl = 'https://'+GEARAUTH+':'+GEARAPISECUREPORT+'/api/rtoken';
+                else oauthurl = 'http://'+GEARAUTH+':'+GEARAPIPORT+'/api/rtoken';
 
                 var oauth = new OAuth.OAuth(
                     oauthurl,
@@ -729,7 +730,7 @@ function create(param) {
 
             if (this.securemode) {
                 opt = {
-                    host: GEARAPIADDRESS,
+                    host: GEARAUTH,
                     path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
                     port: GEARAPISECUREPORT,
                     method: 'GET'
@@ -737,7 +738,7 @@ function create(param) {
             }
             else {
                 opt = {
-                    host: GEARAPIADDRESS,
+                    host: GEARAUTH,
                     path: '/api/revoke/'+this.accesstoken.token+'/'+revokecode,
                     port: GEARAPIPORT,
                     method: 'GET'
@@ -768,6 +769,30 @@ function create(param) {
         }
     }
 
+    /**
+     * Set configuration value by key
+     * @param  {String} key Key
+     * @param  {String} value  Value
+     */
+    microgear.prototype.setconfig = function(key,value) {
+        switch(key) {
+            case 'GEARAUTH' :   GEARAUTH = value.toString();
+                                break;
+        }
+    }
+
+    /**
+     * Get configuration value by key
+     * @param  {String} key Key
+     * @return {String} value assigned to the input key
+     */
+     microgear.prototype.getconfig = function(key) {
+        switch(key) {
+            case 'GEARAUTH' :   return GEARAUTH;
+                                break;
+        }
+    }
+
     process.on('uncaughtException', function(err) {
         if (DEBUGMODE) {
             console.log(err.toString());
@@ -780,6 +805,8 @@ function create(param) {
     microgear.prototype.writeFeed = microgear.prototype.writefeed;
     microgear.prototype.setAlias = microgear.prototype.setalias;
     microgear.prototype.resetToken = microgear.prototype.resettoken;
+    microgear.prototype.setConfig = microgear.prototype.setconfig;
+    microgear.prototype.getConfig = microgear.prototype.getconfig;
 
     var gkey = param.key || param.gearkey || "";
     var gsecret = param.secret || param.gearsecret || "";
