@@ -1,13 +1,13 @@
 {
   "name": "microgear",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "scripts": {},
   "dependencies": {
     "mqtt": "*",
     "oauth": "*",
     "hat": "*"
   },
-  "description": "microgear client library",
+  "description": "NETPIE client library",
   "main": "index.js",
   "directories": {
     "example": "examples"
@@ -21,7 +21,7 @@
     "iot",
     "platform"
   ],
-  "author": "netpieio",
+  "author": "Chavee Issariyapat <chavee@netpie.io>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/netpieio/microgear-nodejs/issues"

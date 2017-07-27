@@ -65,7 +65,7 @@ function create(param) {
         this.subscriptions = [];
         this.options = {};
         this.toktime = MINTOKDELAYTIME;
-        this.microgearcache = 'microgear-'+this.gearkey+'.cache';
+        this.microgearcache = appdir+'/microgear-'+this.gearkey+'.cache';
     }
 
     microgear.prototype = new events.EventEmitter;
@@ -74,7 +74,8 @@ function create(param) {
         getItem :   function(key) {
                         var fs = require('fs');
                         try {
-                            var val = fs.readFileSync(appdir+'/'+key);
+//                            var val = fs.readFileSync(appdir+'/'+key);
+                            var val = fs.readFileSync(key);
                             if (typeof(val)!='undefined') {
                                 var jsonobj;
                                 try {
@@ -93,7 +94,8 @@ function create(param) {
                     },
         setItem :   function(key,val) {
                         var fs = require('fs');
-                        fs.writeFileSync(appdir+'/'+key,JSON.stringify({_:val}));
+//                        fs.writeFileSync(appdir+'/'+key,JSON.stringify({_:val}));
+                        fs.writeFileSync(key,JSON.stringify({_:val}));
                     }
     };
 
