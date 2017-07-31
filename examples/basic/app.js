@@ -2,21 +2,18 @@
 
 var MicroGear = require('microgear');
 
-
-const APPKEY    = "qDDwMaHEXfBiXmL";
-const APPSECRET = "vNoswuhfqjxWSm0GR7cycGPniekw03";
-const APPID     = "piedemo";
-
-
+const KEY    = <APPKEY>;
+const SECRET = <APPSECRET>;
+const APPID     = <APPID>;
 
 var microgear = MicroGear.create({
-    gearkey : APPKEY,
-    gearsecret : APPSECRET
+    key : KEY,
+    secret : SECRET
 });
 
 microgear.on('connected', function() {
     console.log('Connected...');
-    microgear.setname("mygear");
+    microgear.setalias("mygear");
     setInterval(function() {
         microgear.chat('mygear', 'Hello world.');
     },1000);
@@ -31,4 +28,3 @@ microgear.on('closed', function() {
 });
 
 microgear.connect(APPID);
-
