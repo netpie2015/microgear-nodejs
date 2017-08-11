@@ -803,6 +803,14 @@ function create(param) {
         else return this.client.connected;
     }
 
+    /**
+     * Push message to the owner of this device
+     */
+    microgear.prototype.pushowner = function(msg) {
+        this.publish('/@push/owner', msg, {}, function() {
+        });
+    }
+
     process.on('uncaughtException', function(err) {
         if (DEBUGMODE) {
             console.log(err.toString());
@@ -817,6 +825,7 @@ function create(param) {
     microgear.prototype.resetToken = microgear.prototype.resettoken;
     microgear.prototype.setConfig = microgear.prototype.setconfig;
     microgear.prototype.getConfig = microgear.prototype.getconfig;
+    microgear.prototype.pushOwner = microgear.prototype.pushowner;
 
     var gkey = param.key || param.gearkey || "";
     var gsecret = param.secret || param.gearsecret || "";
