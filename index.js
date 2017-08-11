@@ -787,11 +787,20 @@ function create(param) {
      * @param  {String} key Key
      * @return {String} value assigned to the input key
      */
-     microgear.prototype.getconfig = function(key) {
+    microgear.prototype.getconfig = function(key) {
         switch(key) {
             case 'GEARAUTH' :   return GEARAUTH;
                                 break;
         }
+    }
+
+    /**
+     * Get connection status
+     * @return {Boolean} true if connected
+     */
+    microgear.prototype.connected = function() {
+        if (!this.client) return false;
+        else return this.client.connected;
     }
 
     process.on('uncaughtException', function(err) {
