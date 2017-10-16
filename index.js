@@ -15,7 +15,7 @@ const GEARAPISECUREPORT = '8081';
 const GBMQTTPORT = '1883';
 const GBMQTTSPORT = '8883';
 const GBWSPORT = '8083';
-const GBWSSPORT = '8884';
+const GBWSSPORT = '8084';
 
 /**
  * Microgear API version
@@ -52,7 +52,7 @@ function create(param) {
     var oauth;
 
     var microgear = function(gearkey,gearsecret,gearalias) {
-        this.securemode = false;
+        this.securemode = true;
         this.debugmode = DEBUGMODE;
         this.gearkey = gearkey;
         this.gearsecret = gearsecret;
