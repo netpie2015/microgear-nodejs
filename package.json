@@ -3,9 +3,10 @@
   "version": "0.7.9",
   "scripts": {},
   "dependencies": {
+    "hat": "*",
+    "localstorage-fs": "^0.1.0",
     "mqtt": "*",
-    "oauth": "*",
-    "hat": "*"
+    "oauth": "*"
   },
   "description": "NETPIE client library",
   "main": "index.js",
