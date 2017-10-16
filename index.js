@@ -40,8 +40,6 @@ while(topModule.parent) {
 var appdir = process.browser?'':require('path').dirname(topModule.filename);
 const ps = {p:'online',a:'offline',n:'aliased',u:'unaliased'};
 
-global.cache = {};
-
 /**
  * Create MicroGear client
  * @param  {object} param client parameter
@@ -77,11 +75,8 @@ function create(param) {
 
     microgear.prototype.cache = {
         getItem :   function(key) {
-                        return global.cache[key];
-
                         var fs = process.browser?require('localstorage-fs'):require('fs');
                         try {
-                            var val = fs.readFileSync(appdir+'/'+key);
                             var val = fs.readFileSync(key);
                             if (typeof(val)!='undefined') {
                                 var jsonobj;
@@ -100,10 +95,8 @@ function create(param) {
                         }
                     },
         setItem :   function(key,val) {
-                        global.cache[key] = val;
-
                         var fs = process.browser?require('localstorage-fs'):require('fs');
-                        fs.writeFileSync(appdir+'/'+key,JSON.stringify({_:val}));
+                        fs.writeFileSync(key,JSON.stringify({_:val}));
                     }
     };
 
