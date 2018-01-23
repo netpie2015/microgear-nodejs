@@ -243,17 +243,9 @@ microgear.on("message", function(topic,msg) {
 ```
 
 **Event: 'present'**
-This event is created when there is a microgear under the same appid appears online to connect to NETPIE.
+This event is created when any microgear under the same appid changes its state (online/offline/alias changed).
 ```
 microgear.on("present", function(event) {
-	console.log("New friend found: "+event.gearkey);
-});
-```
-
-**Event: 'absent'**
-This event is created when the microgear under the same appid appears offline.
-```
-microgear.on("absent", function(event) {
-	console.log("Friend lost: "+event.gearkey);
+	console.log(event);
 });
 ```
