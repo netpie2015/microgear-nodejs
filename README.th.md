@@ -248,7 +248,7 @@ microgear.on("present", function(event) {
 	console.log(event);
 });
 ```
-Output เป็น json string ในรูปแบบ
+event เป็น json string ในรูปแบบ
 ```
 {
   type : [online|offline|alias],
