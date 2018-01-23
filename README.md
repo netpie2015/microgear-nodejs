@@ -249,3 +249,11 @@ microgear.on("present", function(event) {
 	console.log(event);
 });
 ```
+event is a json string of the form:
+```
+{
+  type : [online|offline|alias],
+  gear : DEVICE_TOKEN,
+  alias : DEVICE_ALIAS
+}
+```
