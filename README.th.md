@@ -242,16 +242,17 @@ microgear.on("message", function(topic,msg) {
 ```
 
 **Event: 'present'**
-event นี้จะเกิดขึ้นเมื่อมี microgear ใน appid เดียวกัน online เข้ามาเชื่อมต่อ netpie
+event นี้จะเกิดขึ้นเมื่อมี microgear ใน appid เดียวกันมีการเปลี่ยนสถานะ เช่น online หรือ offline หรือเปลี่ยน alias
 ```
 microgear.on("present", function(event) {
-	console.log("New friend found: "+event.gearkey);
+	console.log(event);
 });
 ```
-**Event: 'absent'**
-event นี้จะเกิดขึ้นเมื่อมี microgear ใน appid เดียวกัน offline หายไป
+Output เป็น json string ในรูปแบบ
 ```
-microgear.on("absent", function(event) {
-	console.log("Friend lost: "+event.gearkey);
-});
+{
+  type : [online|offline|alias],
+  gear : DEVICE_TOKEN,
+  alias : DEVICE_ALIAS
+}
 ```
