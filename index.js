@@ -11,8 +11,11 @@ module.exports.create = create;
 const GEARAPIADDRESS = 'ga.netpie.io';
 const GEARAPIPORT = '8080';
 const GEARAPISECUREPORT = '8081';
-const GBPORT = '1883';
-const GBSPORT = '8883';
+
+const GBMQTTPORT = '1883';
+const GBMQTTSPORT = '8883';
+const GBWSPORT = '8083';
+const GBWSSPORT = '8084';
 
 /**
  * Microgear API version
@@ -34,7 +37,7 @@ var topModule = module;
 while(topModule.parent) {
   topModule = topModule.parent;
 }
-var appdir = require('path').dirname(topModule.filename);
+var appdir = process.browser?'':require('path').dirname(topModule.filename);
 const ps = {p:'online',a:'offline',n:'aliased',u:'unaliased'};
 
 /**
@@ -49,7 +52,7 @@ function create(param) {
     var oauth;
 
     var microgear = function(gearkey,gearsecret,gearalias) {
-        this.securemode = false;
+        this.securemode = true;
         this.debugmode = DEBUGMODE;
         this.gearkey = gearkey;
         this.gearsecret = gearsecret;
@@ -72,9 +75,8 @@ function create(param) {
 
     microgear.prototype.cache = {
         getItem :   function(key) {
-                        var fs = require('fs');
+                        var fs = process.browser?require('localstorage-fs'):require('fs');
                         try {
-//                            var val = fs.readFileSync(appdir+'/'+key);
                             var val = fs.readFileSync(key);
                             if (typeof(val)!='undefined') {
                                 var jsonobj;
@@ -93,8 +95,7 @@ function create(param) {
                         }
                     },
         setItem :   function(key,val) {
-                        var fs = require('fs');
-//                        fs.writeFileSync(appdir+'/'+key,JSON.stringify({_:val}));
+                        var fs = process.browser?require('localstorage-fs'):require('fs');
                         fs.writeFileSync(key,JSON.stringify({_:val}));
                     }
     };
@@ -335,8 +336,8 @@ function create(param) {
 
         if (this.securemode) {
             this.client = mqtt.connect(
-                'mqtts://'+this.gearexaddress,
-                {   port: GBSPORT,
+                (process.browser?'wss://':'mqtts://')+this.gearexaddress,
+                {   port: process.browser?GBWSSPORT:GBMQTTSPORT,
                     username: mqttuser,
                     password: mqttpassword,
                     clientId: mqttclientid,
@@ -348,8 +349,8 @@ function create(param) {
         }
         else {
             this.client = mqtt.connect(
-                'mqtt://'+this.gearexaddress,
-                {   port: GBPORT,
+                (process.browser?'ws://':'mqtt://')+this.gearexaddress,
+                {   port: process.browser?GBWSPORT:GBMQTTPORT,
                     username: mqttuser,
                     password: mqttpassword,
                     clientId: mqttclientid,
@@ -787,11 +788,28 @@ function create(param) {
      * @param  {String} key Key
      * @return {String} value assigned to the input key
      */
-     microgear.prototype.getconfig = function(key) {
+    microgear.prototype.getconfig = function(key) {
         switch(key) {
             case 'GEARAUTH' :   return GEARAUTH;
                                 break;
         }
+    }
+
+    /**
+     * Get connection status
+     * @return {Boolean} true if connected
+     */
+    microgear.prototype.connected = function() {
+        if (!this.client) return false;
+        else return this.client.connected;
+    }
+
+    /**
+     * Push message to the owner of this device
+     */
+    microgear.prototype.pushowner = function(msg) {
+        this.publish('/@push/owner', msg, {}, function() {
+        });
     }
 
     process.on('uncaughtException', function(err) {
@@ -808,6 +826,7 @@ function create(param) {
     microgear.prototype.resetToken = microgear.prototype.resettoken;
     microgear.prototype.setConfig = microgear.prototype.setconfig;
     microgear.prototype.getConfig = microgear.prototype.getconfig;
+    microgear.prototype.pushOwner = microgear.prototype.pushowner;
 
     var gkey = param.key || param.gearkey || "";
     var gsecret = param.secret || param.gearsecret || "";
